@@ -89,7 +89,11 @@ class _PinInputFieldState extends State<PinInputField> {
             obscureText: true,
             maxLength: widget.pinLength,
             decoration: InputDecoration(
+              // Remove the default border of the TextField
               border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
               counterText: '',
               contentPadding: EdgeInsets.zero,
               hintText: '••••',
@@ -139,10 +143,10 @@ class _PinInputFieldState extends State<PinInputField> {
   }
 
   Color _getBorderColor() {
-    if (!widget.enabled) return const Color.fromARGB(0, 255, 255, 255);
+    if (!widget.enabled) return Colors.transparent; // Changed to transparent
     if (widget.errorText != null) return AppColors.error;
     if (_focusNode.hasFocus) return AppColors.primary;
     if (widget.controller.text.isNotEmpty) return AppColors.success;
-    return const Color.fromARGB(0, 255, 255, 255);
+    return Colors.transparent; // Changed to transparent
   }
 }
