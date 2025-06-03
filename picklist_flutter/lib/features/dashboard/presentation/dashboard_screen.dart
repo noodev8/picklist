@@ -150,7 +150,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         final totalPicks = provider.getTotalPicks();
         final completedPicks = provider.getCompletedPicks();
         final pendingPicks = totalPicks - completedPicks;
-        final completionRate = totalPicks > 0 ? (completedPicks / totalPicks) : 0.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,28 +157,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             Text(
               'Overview',
               style: AppTypography.headlineMedium,
-            ),
-            AppSpacing.verticalSpaceMD,
-            Row(
-              children: [
-                Expanded(
-                  child: StatsCard(
-                    title: 'Total Picks',
-                    value: totalPicks.toString(),
-                    icon: Icons.inventory_2,
-                    color: AppColors.primary,
-                  ),
-                ),
-                AppSpacing.horizontalSpaceMD,
-                Expanded(
-                  child: StatsCard(
-                    title: 'Completed',
-                    value: completedPicks.toString(),
-                    icon: Icons.check_circle,
-                    color: AppColors.success,
-                  ),
-                ),
-              ],
             ),
             AppSpacing.verticalSpaceMD,
             Row(
@@ -195,10 +172,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 AppSpacing.horizontalSpaceMD,
                 Expanded(
                   child: StatsCard(
-                    title: 'Completion',
-                    value: '${(completionRate * 100).toInt()}%',
-                    icon: Icons.trending_up,
-                    color: AppColors.info,
+                    title: 'Completed',
+                    value: completedPicks.toString(),
+                    icon: Icons.check_circle,
+                    color: AppColors.success,
                   ),
                 ),
               ],
