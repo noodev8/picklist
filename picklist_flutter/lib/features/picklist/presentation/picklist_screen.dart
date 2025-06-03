@@ -94,7 +94,6 @@ class _PicklistScreenState extends State<PicklistScreen>
           );
         },
       ),
-      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
@@ -264,24 +263,6 @@ class _PicklistScreenState extends State<PicklistScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    return Consumer<PicklistProvider>(
-      builder: (context, provider, _) {
-        final items = provider.getPicksForLocation(widget.locationId);
-        final hasUnpicked = items.any((item) => !item.isPicked);
-        
-        if (!hasUnpicked) return const SizedBox.shrink();
-        
-        return FloatingActionButton.extended(
-          onPressed: _markAllAsPicked,
-          icon: const Icon(Icons.check_circle),
-          label: const Text('Mark All Picked'),
-          backgroundColor: AppColors.success,
-        );
-      },
     );
   }
 }
