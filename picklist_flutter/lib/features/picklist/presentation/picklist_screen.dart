@@ -3,13 +3,9 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/custom_button.dart';
-import '../../../core/widgets/search_bar.dart' hide FilterChip;
-import '../../../core/widgets/search_bar.dart' as search_widgets;
 import '../../../providers/picklist_provider.dart';
 import '../../../models/pick_item.dart';
 import 'widgets/pick_item_card.dart';
-import 'widgets/filter_bottom_sheet.dart';
 import 'widgets/pick_stats_header.dart';
 
 /// Enhanced picklist screen with search, filtering, and better UX
@@ -30,9 +26,6 @@ class PicklistScreen extends StatefulWidget {
 class _PicklistScreenState extends State<PicklistScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  String _searchQuery = '';
-  bool? _statusFilter;
-  bool _hasActiveFilters = false;
 
   @override
   void initState() {
@@ -52,37 +45,6 @@ class _PicklistScreenState extends State<PicklistScreen>
   void dispose() {
     _animationController.dispose();
     super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
-  }
-
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(
-        currentStatusFilter: _statusFilter,
-        onFiltersApplied: (statusFilter) {
-          setState(() {
-            _statusFilter = statusFilter;
-            _hasActiveFilters = statusFilter != null;
-          });
-        },
-      ),
-    );
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _statusFilter = null;
-      _hasActiveFilters = false;
-      _searchQuery = '';
-    });
   }
 
   void _markAllAsPicked() {
@@ -116,29 +78,18 @@ class _PicklistScreenState extends State<PicklistScreen>
     return Scaffold(
       body: Consumer<PicklistProvider>(
         builder: (context, provider, _) {
-          final filteredItems = provider.getFilteredItems(
-            locationId: widget.locationId,
-            isPicked: _statusFilter,
-            searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-          );
+          final items = provider.getPicksForLocation(widget.locationId);
 
           return CustomScrollView(
             slivers: [
               _buildAppBar(provider),
               SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    PickStatsHeader(
-                      locationId: widget.locationId,
-                      provider: provider,
-                    ),
-                    _buildSearchAndFilters(),
-                    if (_hasActiveFilters || _searchQuery.isNotEmpty)
-                      _buildActiveFilters(),
-                  ],
+                child: PickStatsHeader(
+                  locationId: widget.locationId,
+                  provider: provider,
                 ),
               ),
-              _buildPickList(filteredItems, provider),
+              _buildPickList(items, provider),
             ],
           );
         },
@@ -201,9 +152,6 @@ class _PicklistScreenState extends State<PicklistScreen>
               case 'mark_all_unpicked':
                 _markAllAsUnpicked();
                 break;
-              case 'clear_filters':
-                _clearFilters();
-                break;
             }
           },
           itemBuilder: (context) => [
@@ -227,69 +175,9 @@ class _PicklistScreenState extends State<PicklistScreen>
                 ],
               ),
             ),
-            if (_hasActiveFilters || _searchQuery.isNotEmpty)
-              const PopupMenuItem(
-                value: 'clear_filters',
-                child: Row(
-                  children: [
-                    Icon(Icons.clear, color: AppColors.textSecondary),
-                    AppSpacing.horizontalSpaceSM,
-                    Text('Clear Filters'),
-                  ],
-                ),
-              ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildSearchAndFilters() {
-    return Padding(
-      padding: AppSpacing.screenPadding,
-      child: CustomSearchBar(
-        onSearchChanged: _onSearchChanged,
-        hintText: 'Search picks...',
-        onFilterPressed: _showFilterBottomSheet,
-        hasActiveFilters: _hasActiveFilters,
-      ),
-    );
-  }
-
-  Widget _buildActiveFilters() {
-    final filters = <Widget>[];
-    
-    if (_statusFilter != null) {
-      filters.add(
-        search_widgets.FilterChip(
-          label: _statusFilter! ? 'Picked' : 'Pending',
-          color: _statusFilter! ? AppColors.success : AppColors.warning,
-          onRemove: () {
-            setState(() {
-              _statusFilter = null;
-              _hasActiveFilters = false;
-            });
-          },
-        ),
-      );
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      filters.add(
-        search_widgets.FilterChip(
-          label: 'Search: $_searchQuery',
-          onRemove: () {
-            setState(() {
-              _searchQuery = '';
-            });
-          },
-        ),
-      );
-    }
-
-    return search_widgets.FilterSection(
-      filters: filters,
-      onClearAll: _clearFilters,
     );
   }
 
@@ -355,35 +243,25 @@ class _PicklistScreenState extends State<PicklistScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.search_off,
+            Icons.list,
             size: 64,
             color: AppColors.textTertiary,
           ),
           AppSpacing.verticalSpaceMD,
           Text(
-            'No picks found',
+            'No picks available',
             style: AppTypography.headlineMedium.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           AppSpacing.verticalSpaceSM,
           Text(
-            _searchQuery.isNotEmpty || _hasActiveFilters
-                ? 'Try adjusting your search or filters'
-                : 'No picks available for this location',
+            'No picks available for this location',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textTertiary,
             ),
             textAlign: TextAlign.center,
           ),
-          if (_searchQuery.isNotEmpty || _hasActiveFilters) ...[
-            AppSpacing.verticalSpaceLG,
-            CustomButton(
-              text: 'Clear Filters',
-              onPressed: _clearFilters,
-              variant: ButtonVariant.secondary,
-            ),
-          ],
         ],
       ),
     );
