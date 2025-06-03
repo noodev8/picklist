@@ -10,7 +10,6 @@ import '../../picklist/presentation/picklist_screen.dart';
 import '../../../providers/picklist_provider.dart';
 import 'widgets/stats_card.dart';
 import 'widgets/location_card.dart';
-import 'widgets/quick_actions.dart';
 
 /// Modern dashboard screen with improved layout and statistics
 class DashboardScreen extends StatefulWidget {
@@ -96,8 +95,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildStatsSection(),
-                  AppSpacing.verticalSpaceLG,
-                  _buildQuickActions(),
                   AppSpacing.verticalSpaceLG,
                   _buildLocationsSection(),
                 ]),
@@ -209,20 +206,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         );
       },
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: AppTypography.headlineMedium,
-        ),
-        AppSpacing.verticalSpaceMD,
-        const QuickActions(),
-      ],
     );
   }
 

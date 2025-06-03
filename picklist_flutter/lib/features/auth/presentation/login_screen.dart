@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: AppRadius.radiusXL,
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: const Color.fromARGB(255, 255, 255, 255),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Text(
       'Default PIN: 1234',
       style: AppTypography.bodySmall.copyWith(
-        color: AppColors.textTertiary,
+        color: const Color.fromARGB(0, 0, 0, 0),
       ),
     );
   }

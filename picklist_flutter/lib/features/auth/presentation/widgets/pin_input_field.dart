@@ -4,7 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 
-/// Custom PIN input field with individual digit boxes
+/// Custom PIN input field with single text box
 class PinInputField extends StatefulWidget {
   const PinInputField({
     super.key,
@@ -28,84 +28,82 @@ class PinInputField extends StatefulWidget {
 }
 
 class _PinInputFieldState extends State<PinInputField> {
-  late List<FocusNode> _focusNodes;
-  late List<TextEditingController> _controllers;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
-    _setupControllers();
-    _setupListeners();
-  }
-
-  void _setupControllers() {
-    _focusNodes = List.generate(
-      widget.pinLength,
-      (index) => FocusNode(),
-    );
-    _controllers = List.generate(
-      widget.pinLength,
-      (index) => TextEditingController(),
-    );
-  }
-
-  void _setupListeners() {
-    widget.controller.addListener(_onMainControllerChanged);
-    
-    for (int i = 0; i < widget.pinLength; i++) {
-      _controllers[i].addListener(() => _onDigitChanged(i));
-    }
-  }
-
-  void _onMainControllerChanged() {
-    final text = widget.controller.text;
-    for (int i = 0; i < widget.pinLength; i++) {
-      _controllers[i].text = i < text.length ? text[i] : '';
-    }
-  }
-
-  void _onDigitChanged(int index) {
-    final digit = _controllers[index].text;
-    
-    // Update main controller
-    final currentPin = _controllers.map((c) => c.text).join();
-    widget.controller.text = currentPin;
-    widget.onChanged?.call(currentPin);
-    
-    // Handle navigation between fields
-    if (digit.isNotEmpty && index < widget.pinLength - 1) {
-      _focusNodes[index + 1].requestFocus();
-    } else if (digit.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-    
-    // Submit when complete
-    if (currentPin.length == widget.pinLength) {
-      widget.onSubmitted?.call(currentPin);
-    }
+    _focusNode = FocusNode();
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onMainControllerChanged);
-    for (final controller in _controllers) {
-      controller.dispose();
-    }
-    for (final focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onChanged(String value) {
+    widget.onChanged?.call(value);
+
+    // Auto-submit when PIN is complete
+    if (value.length == widget.pinLength) {
+      widget.onSubmitted?.call(value);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(
-            widget.pinLength,
-            (index) => _buildDigitField(index),
+        Container(
+          width: 200,
+          height: 60,
+          decoration: BoxDecoration(
+            color: widget.enabled ? AppColors.surface : AppColors.surfaceVariant,
+            borderRadius: AppRadius.radiusMD,
+            border: Border.all(
+              color: _getBorderColor(),
+              width: _focusNode.hasFocus ? 2 : 1,
+            ),
+            boxShadow: _focusNode.hasFocus
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            enabled: widget.enabled,
+            textAlign: TextAlign.center,
+            style: AppTypography.headlineLarge.copyWith(
+              fontWeight: FontWeight.bold,
+              color: widget.enabled ? AppColors.textPrimary : AppColors.textTertiary,
+              letterSpacing: 8.0,
+            ),
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            maxLength: widget.pinLength,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              counterText: '',
+              contentPadding: EdgeInsets.zero,
+              hintText: '••••',
+              hintStyle: AppTypography.headlineLarge.copyWith(
+                color: AppColors.textTertiary,
+                letterSpacing: 8.0,
+              ),
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(widget.pinLength),
+            ],
+            onChanged: _onChanged,
+            onSubmitted: widget.onSubmitted,
           ),
         ),
         if (widget.errorText != null) ...[
@@ -113,56 +111,6 @@ class _PinInputFieldState extends State<PinInputField> {
           _buildErrorText(),
         ],
       ],
-    );
-  }
-
-  Widget _buildDigitField(int index) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: widget.enabled ? AppColors.surface : AppColors.surfaceVariant,
-        borderRadius: AppRadius.radiusMD,
-        border: Border.all(
-          color: _getFieldBorderColor(index),
-          width: _focusNodes[index].hasFocus ? 2 : 1,
-        ),
-        boxShadow: _focusNodes[index].hasFocus
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: TextField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        enabled: widget.enabled,
-        textAlign: TextAlign.center,
-        style: AppTypography.headlineLarge.copyWith(
-          fontWeight: FontWeight.bold,
-          color: widget.enabled ? AppColors.textPrimary : AppColors.textTertiary,
-        ),
-        keyboardType: TextInputType.number,
-        obscureText: true,
-        maxLength: 1,
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          counterText: '',
-          contentPadding: EdgeInsets.zero,
-        ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
-        onChanged: (value) {
-          if (value.length > 1) {
-            _controllers[index].text = value.substring(value.length - 1);
-          }
-        },
-      ),
     );
   }
 
@@ -190,11 +138,11 @@ class _PinInputFieldState extends State<PinInputField> {
     );
   }
 
-  Color _getFieldBorderColor(int index) {
-    if (!widget.enabled) return AppColors.border;
+  Color _getBorderColor() {
+    if (!widget.enabled) return const Color.fromARGB(0, 255, 255, 255);
     if (widget.errorText != null) return AppColors.error;
-    if (_focusNodes[index].hasFocus) return AppColors.primary;
-    if (_controllers[index].text.isNotEmpty) return AppColors.success;
-    return AppColors.border;
+    if (_focusNode.hasFocus) return AppColors.primary;
+    if (widget.controller.text.isNotEmpty) return AppColors.success;
+    return const Color.fromARGB(0, 255, 255, 255);
   }
 }
