@@ -60,4 +60,97 @@ class PicklistProvider with ChangeNotifier {
     if (items == null) return 0;
     return items.where((item) => !item.isPicked).length;
   }
+
+  int getTotalPicksForLocation(String locationId) {
+    final items = _pickItems[locationId];
+    return items?.length ?? 0;
+  }
+
+  int getCompletedPicks() {
+    int completed = 0;
+    for (final items in _pickItems.values) {
+      completed += items.where((item) => item.isPicked).length;
+    }
+    return completed;
+  }
+
+  int getTotalPicksCount() {
+    int total = 0;
+    for (final items in _pickItems.values) {
+      total += items.length;
+    }
+    return total;
+  }
+
+  double getCompletionRate() {
+    final total = getTotalPicksCount();
+    if (total == 0) return 0.0;
+    return getCompletedPicks() / total;
+  }
+
+  List<PickItem> searchItems(String query) {
+    if (query.isEmpty) return [];
+
+    final allItems = <PickItem>[];
+    for (final items in _pickItems.values) {
+      allItems.addAll(items);
+    }
+
+    return allItems.where((item) {
+      return item.productCode.toLowerCase().contains(query.toLowerCase()) ||
+             item.title.toLowerCase().contains(query.toLowerCase()) ||
+             item.location.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+  }
+
+  List<PickItem> getFilteredItems({
+    String? locationId,
+    bool? isPicked,
+    String? searchQuery,
+  }) {
+    List<PickItem> items;
+
+    if (locationId != null) {
+      items = _pickItems[locationId] ?? [];
+    } else {
+      items = [];
+      for (final locationItems in _pickItems.values) {
+        items.addAll(locationItems);
+      }
+    }
+
+    if (isPicked != null) {
+      items = items.where((item) => item.isPicked == isPicked).toList();
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      items = items.where((item) {
+        return item.productCode.toLowerCase().contains(searchQuery.toLowerCase()) ||
+               item.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
+               item.location.toLowerCase().contains(searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    return items;
+  }
+
+  void markAllAsPicked(String locationId) {
+    final items = _pickItems[locationId];
+    if (items != null) {
+      for (final item in items) {
+        item.isPicked = true;
+      }
+      notifyListeners();
+    }
+  }
+
+  void markAllAsUnpicked(String locationId) {
+    final items = _pickItems[locationId];
+    if (items != null) {
+      for (final item in items) {
+        item.isPicked = false;
+      }
+      notifyListeners();
+    }
+  }
 }

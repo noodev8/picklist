@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/login_screen.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/state/auth_provider.dart';
 import 'providers/picklist_provider.dart';
 import 'theme/app_theme.dart';
 
@@ -14,11 +15,16 @@ class PicklistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => PicklistProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => PicklistProvider()),
+      ],
       child: MaterialApp(
         title: 'Picklist',
-        theme: AppTheme.theme,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
         home: const LoginScreen(),
         debugShowCheckedModeBanner: false,
       ),
