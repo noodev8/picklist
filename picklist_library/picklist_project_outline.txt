@@ -1,0 +1,19 @@
+I want to create a pick app for a warehouse using dart/flutter.
+It will allow users to see what picks need picking and to select one and mark it as 'picked'
+
+
+It will connect to a postgreSQL database
+The database already exists.
+The table is called 'localstock' and we will be checking for rows where the ordernum != '#FREE'. We then want to display the ordernum and code.
+
+It will have: 
+	- A home page where the user can login
+	- once logged in there will be 5 buttons:
+		- C3-Front
+		- C3-Back
+		- C3-Crocs
+		- C3-Shop
+		- C1
+
+when the user presses a button it will show all the picks from that location ( the location needs to include the words on the button in the query )
+
