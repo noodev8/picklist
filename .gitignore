@@ -56,4 +56,5 @@ android/key.properties
 .idea/
 
 # =========================================
-# Git
+# Android
+**/android/app/.cxx/
