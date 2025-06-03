@@ -84,43 +84,7 @@ class _PinInputFieldState extends State<PinInputField> {
             obscureText: true,
             maxLength: widget.pinLength,
             decoration: InputDecoration(
-              filled: true,
-              fillColor: widget.enabled ? AppColors.surface : AppColors.surfaceVariant,
-              border: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMD,
-                borderSide: BorderSide(
-                  color: _getBorderColor(),
-                  width: 1,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMD,
-                borderSide: BorderSide(
-                  color: _getBorderColor(),
-                  width: 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMD,
-                borderSide: BorderSide(
-                  color: _getBorderColor(),
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMD,
-                borderSide: const BorderSide(
-                  color: AppColors.error,
-                  width: 1,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: AppRadius.radiusMD,
-                borderSide: const BorderSide(
-                  color: AppColors.error,
-                  width: 2,
-                ),
-              ),
+              border: InputBorder.none,
               counterText: '',
               contentPadding: EdgeInsets.zero,
               hintText: '••••',
@@ -170,10 +134,10 @@ class _PinInputFieldState extends State<PinInputField> {
   }
 
   Color _getBorderColor() {
-    if (!widget.enabled) return const Color.fromARGB(0, 255, 255, 255);
+    if (!widget.enabled) return Colors.transparent; // Changed to transparent
     if (widget.errorText != null) return AppColors.error;
     if (_focusNode.hasFocus) return AppColors.primary;
     if (widget.controller.text.isNotEmpty) return AppColors.success;
-    return const Color.fromARGB(0, 255, 255, 255);
+    return Colors.transparent; // Changed to transparent
   }
 }
