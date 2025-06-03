@@ -59,12 +59,7 @@ class _PinInputFieldState extends State<PinInputField> {
           width: 200,
           height: 60,
           decoration: BoxDecoration(
-            color: widget.enabled ? AppColors.surface : AppColors.surfaceVariant,
             borderRadius: AppRadius.radiusMD,
-            border: Border.all(
-              color: _getBorderColor(),
-              width: _focusNode.hasFocus ? 2 : 1,
-            ),
             boxShadow: _focusNode.hasFocus
                 ? [
                     BoxShadow(
@@ -89,7 +84,43 @@ class _PinInputFieldState extends State<PinInputField> {
             obscureText: true,
             maxLength: widget.pinLength,
             decoration: InputDecoration(
-              border: InputBorder.none,
+              filled: true,
+              fillColor: widget.enabled ? AppColors.surface : AppColors.surfaceVariant,
+              border: OutlineInputBorder(
+                borderRadius: AppRadius.radiusMD,
+                borderSide: BorderSide(
+                  color: _getBorderColor(),
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadius.radiusMD,
+                borderSide: BorderSide(
+                  color: _getBorderColor(),
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadius.radiusMD,
+                borderSide: BorderSide(
+                  color: _getBorderColor(),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: AppRadius.radiusMD,
+                borderSide: const BorderSide(
+                  color: AppColors.error,
+                  width: 1,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: AppRadius.radiusMD,
+                borderSide: const BorderSide(
+                  color: AppColors.error,
+                  width: 2,
+                ),
+              ),
               counterText: '',
               contentPadding: EdgeInsets.zero,
               hintText: '••••',
