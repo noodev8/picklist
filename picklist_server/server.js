@@ -9,6 +9,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Import routes
+const get_picks = require("./routes/get_picks");
+
+// Route definitions
+app.use("/get_picks", get_picks);
 
 // Root route
 app.get('/', (req, res) => {
