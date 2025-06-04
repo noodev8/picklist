@@ -99,7 +99,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       ),
     );
   }
-
   Widget _buildStatusOptions() {
     return Column(
       children: [
@@ -112,7 +111,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         AppSpacing.verticalSpaceSM,
         _buildStatusOption(
           title: 'Pending Only',
-          subtitle: 'Show only items that need to be picked',
+          subtitle: 'Focus on items that still need picking',
           value: false,
           icon: Icons.schedule,
           color: AppColors.warning,
@@ -120,7 +119,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         AppSpacing.verticalSpaceSM,
         _buildStatusOption(
           title: 'Picked Only',
-          subtitle: 'Show only completed items',
+          subtitle: 'Review completed picks',
           value: true,
           icon: Icons.check_circle,
           color: AppColors.success,
