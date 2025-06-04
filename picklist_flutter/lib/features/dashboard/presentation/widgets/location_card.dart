@@ -29,7 +29,11 @@ class LocationCard extends StatelessWidget {
     return Card(
       elevation: AppElevation.sm,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          print('🔍 DEBUG LocationCard: Card tapped for location: ${location.name} (ID: ${location.id})');
+          print('🔍 DEBUG LocationCard: Remaining picks: $remainingPicks, Total picks: $totalPicks');
+          onTap();
+        },
         borderRadius: AppRadius.radiusMD,
         child: Container(
           padding: AppSpacing.cardPadding,

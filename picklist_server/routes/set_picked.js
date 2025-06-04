@@ -44,10 +44,15 @@ const pool = require('../db');
 // POST /set_picked
 router.post('/', async (req, res) => {
     try {
+        console.log('🔍 DEBUG Server: set_picked API called');
+        console.log('🔍 DEBUG Server: Request body:', req.body);
+
         // Extract required fields from request body
         // Handle cases where req.body might be undefined or null
         const id = req.body && req.body.id ? req.body.id.trim() : null;
         const action = req.body && req.body.action ? req.body.action.trim().toLowerCase() : null;
+
+        console.log('🔍 DEBUG Server: Extracted - ID:', id, 'Action:', action);
         
         // Validate required fields
         if (!id || !action) {

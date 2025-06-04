@@ -34,7 +34,10 @@ dependencies:
   
   # Local storage for PIN and session management
   shared_preferences: ^2.2.2
-  
+
+  # HTTP client for API calls
+  http: ^1.1.0
+
   # UI components and styling
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.1

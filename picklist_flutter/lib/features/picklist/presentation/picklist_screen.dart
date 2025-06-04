@@ -42,6 +42,7 @@ class _PicklistScreenState extends State<PicklistScreen>
   void initState() {
     super.initState();
     _setupAnimations();
+    _loadPicksForLocation();
   }
 
   void _setupAnimations() {
@@ -54,6 +55,12 @@ class _PicklistScreenState extends State<PicklistScreen>
       vsync: this,
     );
     _animationController.forward();
+  }
+
+  void _loadPicksForLocation() {
+    print('🔍 DEBUG PicklistScreen: Loading picks for location: ${widget.locationId}');
+    final provider = context.read<PicklistProvider>();
+    provider.loadPicksForLocation(widget.locationId, forceRefresh: true);
   }
 
   @override
@@ -120,8 +127,10 @@ class _PicklistScreenState extends State<PicklistScreen>
   // Enhanced method to handle item toggle with smooth animation
   void _togglePickStatusWithAnimation(String itemId) async {
     final provider = context.read<PicklistProvider>();
-    final item = provider.getPicksForLocation(widget.locationId)
-        .firstWhere((item) => item.id == itemId);
+
+    // Get the picks list and find the specific item
+    final picks = await provider.getPicksForLocation(widget.locationId);
+    final item = picks.firstWhere((item) => item.id == itemId);
 
     // Store the original status to determine what action is being performed
     final wasPickedBefore = item.isPicked;

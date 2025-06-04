@@ -4,6 +4,11 @@ class PickItem {
   final String location;
   final String title;
   final String? imageUrl;
+  final String orderNum;
+  final String groupId;
+  final String brand;
+  final String supplier;
+  final int pickOrder;
   bool isPicked;
 
   PickItem({
@@ -11,9 +16,60 @@ class PickItem {
     required this.productCode,
     required this.location,
     required this.title,
+    required this.orderNum,
+    required this.groupId,
+    required this.brand,
+    required this.supplier,
+    required this.pickOrder,
     this.imageUrl,
     this.isPicked = false,
   });
+
+  /// Creates a PickItem from API response JSON
+  ///
+  /// Expected API response format:
+  /// {
+  ///   "id": "unique_id_123",
+  ///   "code": "SHOE123",
+  ///   "ordernum": "BC001234",
+  ///   "location": "C3-Front-Rack-01",
+  ///   "groupid": "GRP123",
+  ///   "brand": "Nike",
+  ///   "supplier": "MainSupplier",
+  ///   "qty": 1,
+  ///   "pickorder": 1
+  /// }
+  factory PickItem.fromApiResponse(Map<String, dynamic> json) {
+    return PickItem(
+      id: json['id']?.toString() ?? '',
+      productCode: json['code']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      orderNum: json['ordernum']?.toString() ?? '',
+      groupId: json['groupid']?.toString() ?? '',
+      brand: json['brand']?.toString() ?? 'Unknown',
+      supplier: json['supplier']?.toString() ?? 'Unknown',
+      pickOrder: json['pickorder'] ?? 0,
+      // Create a title from brand and code for display
+      title: '${json['brand'] ?? 'Unknown'} - ${json['code'] ?? 'Unknown'}',
+      // qty = 1 means to be picked, qty = 0 means picked
+      isPicked: (json['qty'] ?? 1) == 0,
+    );
+  }
+
+  /// Converts PickItem to JSON for API calls
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': productCode,
+      'ordernum': orderNum,
+      'location': location,
+      'groupid': groupId,
+      'brand': brand,
+      'supplier': supplier,
+      'qty': isPicked ? 0 : 1,
+      'pickorder': pickOrder,
+    };
+  }
 }
 
 // Dummy data generator for pick items with multiple items per rack location
@@ -71,6 +127,11 @@ List<PickItem> getDummyPickItems(String locationId) {
           productCode: 'SKU${1000 + itemId}',
           location: rack,
           title: title,
+          orderNum: 'BC${1000 + itemId}',
+          groupId: 'GRP${100 + itemId}',
+          brand: 'TestBrand',
+          supplier: 'TestSupplier',
+          pickOrder: itemId,
           imageUrl: 'https://example.com/product$itemId.jpg',
         ),
       );

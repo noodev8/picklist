@@ -45,13 +45,20 @@ const pool = require('../db');
 // POST /get_picks
 router.post('/', async (req, res) => {
     try {
+        console.log('🔍 DEBUG Server: get_picks API called');
+        console.log('🔍 DEBUG Server: Request body:', req.body);
+
         // Safely extract optional location filter from request body
         // Handle cases where req.body might be undefined or null
         const location_filter = req.body && req.body.location_filter ? req.body.location_filter : null;
 
+        console.log('🔍 DEBUG Server: Location filter:', location_filter);
+
         // Optional: Add location filter if provided
         if (location_filter) {
-            // Filter picks by location containing the specified text
+            console.log('🔍 DEBUG Server: Will filter by location containing:', location_filter);
+        } else {
+            console.log('🔍 DEBUG Server: No location filter - returning all picks');
         }
         
         // Build the SQL query to get all available picks
@@ -87,9 +94,16 @@ router.post('/', async (req, res) => {
         // This groups picks by location so pickers can work efficiently
         query += ` ORDER BY l.location, l.pickorder, l.code`;
 
+        console.log('🔍 DEBUG Server: Final SQL query:', query);
+        console.log('🔍 DEBUG Server: Query parameters:', queryParams);
+
         // Execute the query
         const result = await pool.query(query, queryParams);
-        
+
+        console.log('🔍 DEBUG Server: Query executed successfully');
+        console.log('🔍 DEBUG Server: Number of rows returned:', result.rows.length);
+        console.log('🔍 DEBUG Server: First few rows:', result.rows.slice(0, 2));
+
         // Format the response data
         const picks = result.rows.map(row => ({
             id: row.id,
@@ -103,16 +117,22 @@ router.post('/', async (req, res) => {
             pickorder: row.pickorder || 0  // Default to 0 if pickorder is null
         }));
         
+        console.log('🔍 DEBUG Server: Formatted picks data:', picks.slice(0, 2));
+        console.log('🔍 DEBUG Server: Total picks to return:', picks.length);
+
         // Return successful response with picks data
-        res.json({
+        const response = {
             return_code: 'SUCCESS',
             picks: picks,
             total_picks: picks.length
-        });
-        
+        };
+
+        console.log('🔍 DEBUG Server: Sending response with return_code:', response.return_code);
+        res.json(response);
+
     } catch (error) {
         // Log the error for debugging
-        console.error('Error getting picks:', error);
+        console.error('🔍 DEBUG Server: Error in get_picks:', error);
         
         // Return database error response
         res.status(500).json({

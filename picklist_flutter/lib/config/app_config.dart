@@ -1,0 +1,61 @@
+/*
+=======================================================================================================================================
+App Configuration
+=======================================================================================================================================
+Purpose: Central configuration file for the picklist Flutter application
+Contains API endpoints, server URLs, and other app-wide configuration settings
+=======================================================================================================================================
+*/
+
+class AppConfig {
+  // API Configuration
+  static const String baseUrl = 'http://192.168.1.182:3000';
+  
+  // API Endpoints
+  static const String getPicksEndpoint = '/get_picks';
+  static const String setPickedEndpoint = '/set_picked';
+  
+  // Full API URLs
+  static String get getPicksUrl => '$baseUrl$getPicksEndpoint';
+  static String get setPickedUrl => '$baseUrl$setPickedEndpoint';
+  
+  // Request timeout settings
+  static const Duration requestTimeout = Duration(seconds: 30);
+  static const Duration connectionTimeout = Duration(seconds: 10);
+  
+  // App Settings
+  static const String appName = 'Picklist';
+  static const String appVersion = '1.0.0';
+  
+  // Default PIN for testing (should be removed in production)
+  static const String defaultPin = '1234';
+  
+  // Location mapping for filtering API calls
+  // Maps UI location IDs to API filter strings
+  static const Map<String, String> locationFilters = {
+    'c3f': 'C3-Front',
+    'c3b': 'C3-Back', 
+    'c3c': 'C3-Crocs',
+    'c3s': 'C3-Shop',
+    'c1': 'C1',
+  };
+  
+  // Location display names
+  static const Map<String, String> locationNames = {
+    'c3f': 'C3-Front',
+    'c3b': 'C3-Back',
+    'c3c': 'C3-Crocs', 
+    'c3s': 'C3-Shop',
+    'c1': 'C1',
+  };
+  
+  // Get location filter string for API calls
+  static String? getLocationFilter(String locationId) {
+    return locationFilters[locationId];
+  }
+  
+  // Get location display name
+  static String getLocationName(String locationId) {
+    return locationNames[locationId] ?? locationId;
+  }
+}

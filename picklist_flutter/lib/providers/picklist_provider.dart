@@ -2,25 +2,45 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pick_item.dart';
 import '../models/pick_location.dart';
+import '../api/get_picks_api.dart';
+import '../api/set_picked_api.dart';
+import '../config/app_config.dart';
 
 class PicklistProvider with ChangeNotifier {
   static const String _pinKey = 'user_pin';
   static const String _defaultPin = '1234'; // Default PIN for testing
   bool _isAuthenticated = false;
-  final List<PickLocation> locations = dummyLocations;
-  Map<String, List<PickItem>> _pickItems = {};
 
+  // Cache for pick items by location
+  final Map<String, List<PickItem>> _pickItems = {};
+
+  // Loading states
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // Location data - will be populated from API data
+  List<PickLocation> _locations = [];
+
+  // Getters
   bool get isAuthenticated => _isAuthenticated;
-  
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  List<PickLocation> get locations => _locations;
+
   PicklistProvider() {
-    _initializeData();
+    _initializeLocations();
   }
 
-  void _initializeData() {
-    // Initialize dummy pick items for each location
-    for (var location in locations) {
-      _pickItems[location.id] = getDummyPickItems(location.id);
-    }
+  /// Initialize locations with default values
+  /// These will be updated with real counts from API
+  void _initializeLocations() {
+    _locations = [
+      PickLocation(id: 'c3f', name: 'C3-Front', totalPicks: 0),
+      PickLocation(id: 'c3b', name: 'C3-Back', totalPicks: 0),
+      PickLocation(id: 'c3c', name: 'C3-Crocs', totalPicks: 0),
+      PickLocation(id: 'c3s', name: 'C3-Shop', totalPicks: 0),
+      PickLocation(id: 'c1', name: 'C1', totalPicks: 0),
+    ];
   }
 
   Future<bool> authenticate(String pin) async {
@@ -33,24 +53,95 @@ class PicklistProvider with ChangeNotifier {
 
   Future<void> logout() async {
     _isAuthenticated = false;
+    // Clear cached data on logout
+    _pickItems.clear();
+    _initializeLocations();
     notifyListeners();
   }
 
-  List<PickItem> getPicksForLocation(String locationId) {
+  /// Loads picks for a specific location from the API
+  ///
+  /// [locationId] - The location ID to load picks for
+  /// [forceRefresh] - Whether to force refresh even if data is cached
+  Future<void> loadPicksForLocation(String locationId, {bool forceRefresh = false}) async {
+    print('🔍 DEBUG Provider: Loading picks for location: $locationId');
+    print('🔍 DEBUG Provider: Force refresh: $forceRefresh');
+    print('🔍 DEBUG Provider: Has cached data: ${_pickItems.containsKey(locationId)}');
+
+    // Return cached data if available and not forcing refresh
+    if (!forceRefresh && _pickItems.containsKey(locationId)) {
+      print('🔍 DEBUG Provider: Using cached data for $locationId');
+      return;
+    }
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      print('🔍 DEBUG Provider: Calling API for location: $locationId');
+
+      // Get picks from API for this location
+      final List<PickItem> picks = await GetPicksApi.getPicksForLocation(locationId);
+
+      print('🔍 DEBUG Provider: Received ${picks.length} picks from API');
+
+      // Cache the picks
+      _pickItems[locationId] = picks;
+
+      // Update location total picks count
+      _updateLocationPickCount(locationId, picks.length);
+
+      print('🔍 DEBUG Provider: Successfully cached picks for $locationId');
+
+    } catch (e) {
+      print('🔍 DEBUG Provider: Error loading picks: $e');
+      _setError('Failed to load picks: ${e.toString()}');
+      // Ensure empty list if error occurs
+      _pickItems[locationId] = [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Gets picks for a location (loads from API if not cached)
+  Future<List<PickItem>> getPicksForLocation(String locationId) async {
+    // Load from API if not cached
+    if (!_pickItems.containsKey(locationId)) {
+      await loadPicksForLocation(locationId);
+    }
+
     final items = _pickItems[locationId] ?? [];
     // Sort items by rack location for better picker workflow
     items.sort((a, b) => a.location.compareTo(b.location));
     return items;
   }
 
-  void togglePickStatus(String locationId, String pickId) {
-    final items = _pickItems[locationId];
-    if (items != null) {
-      final itemIndex = items.indexWhere((item) => item.id == pickId);
-      if (itemIndex != -1) {
-        items[itemIndex].isPicked = !items[itemIndex].isPicked;
-        notifyListeners();
+  /// Toggles the picked status of an item using the API
+  Future<void> togglePickStatus(String locationId, String pickId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Find the item in cache
+      final items = _pickItems[locationId];
+      if (items != null) {
+        final itemIndex = items.indexWhere((item) => item.id == pickId);
+        if (itemIndex != -1) {
+          final item = items[itemIndex];
+
+          // Call API to update status
+          await SetPickedApi.togglePickedStatus(pickId, item.isPicked);
+
+          // Update local cache
+          items[itemIndex].isPicked = !items[itemIndex].isPicked;
+
+          notifyListeners();
+        }
       }
+    } catch (e) {
+      _setError('Failed to update pick status: ${e.toString()}');
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -177,6 +268,63 @@ class PicklistProvider with ChangeNotifier {
         item.isPicked = false;
       }
       notifyListeners();
+    }
+  }
+
+  /// Helper method to set loading state
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  /// Helper method to clear error message
+  void _clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Helper method to set error message
+  void _setError(String error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  /// Helper method to update location pick count
+  void _updateLocationPickCount(String locationId, int count) {
+    final locationIndex = _locations.indexWhere((loc) => loc.id == locationId);
+    if (locationIndex != -1) {
+      _locations[locationIndex] = PickLocation(
+        id: _locations[locationIndex].id,
+        name: _locations[locationIndex].name,
+        totalPicks: count,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Refreshes all location pick counts from API
+  Future<void> refreshLocationCounts() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation();
+
+      for (int i = 0; i < _locations.length; i++) {
+        final locationId = _locations[i].id;
+        final count = counts[locationId] ?? 0;
+        _locations[i] = PickLocation(
+          id: locationId,
+          name: _locations[i].name,
+          totalPicks: count,
+        );
+      }
+
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to refresh location counts: ${e.toString()}');
+    } finally {
+      _setLoading(false);
     }
   }
 }

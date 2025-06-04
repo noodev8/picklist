@@ -72,6 +72,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _navigateToPicklist(String locationId, String locationName) {
+    print('🔍 DEBUG Dashboard: Location tapped - ID: $locationId, Name: $locationName');
+    print('🔍 DEBUG Dashboard: Navigating to PicklistScreen');
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PicklistScreen(
@@ -80,6 +83,8 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
     );
+
+    print('🔍 DEBUG Dashboard: Navigation to PicklistScreen initiated');
   }
 
   @override
