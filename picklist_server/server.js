@@ -11,9 +11,11 @@ app.use(express.json());
 
 // Import routes
 const get_picks = require("./routes/get_picks");
+const set_picked = require("./routes/set_picked");
 
 // Route definitions
 app.use("/get_picks", get_picks);
+app.use("/set_picked", set_picked);
 
 // Root route
 app.get('/', (req, res) => {
