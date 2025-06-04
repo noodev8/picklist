@@ -1,0 +1,17 @@
+this is how our warehouse locations work:
+
+we have digits before the first '-' sign that represent the building. for example 'C1-Rack-01' will be in building 1.
+The the second section is a description. so if it's a basket or a rack ect.
+finally the numbers at the end represent the actual location/rack.
+
+For example C3-Rack-02 will mean it's in building C3, on rack number 2.
+
+Our main locations which we want represented in the app are:
+- C3-Front
+- C3-Back
+- C3-Crocs
+- C1
+- C3-Shop
+
+the picker goes to those main locations and then the individual rack to find their pick.
+
