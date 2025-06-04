@@ -26,14 +26,16 @@ class PicklistScreen extends StatefulWidget {
 }
 
 class _PicklistScreenState extends State<PicklistScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
-  
+  late AnimationController _pickAnimationController;
+
   // Filter state variables (removed search query)
   bool? _statusFilter; // null = all, true = picked, false = unpicked
-  
-  // Set to track items that are being picked (for animation delay)
-  final Set<String> _itemsBeingPicked = <String>{};
+
+  // Enhanced animation tracking for picked items
+  final Map<String, AnimationController> _itemAnimations = {};
+  final Set<String> _itemsBeingAnimated = <String>{};
 
   @override
   void initState() {
@@ -46,12 +48,21 @@ class _PicklistScreenState extends State<PicklistScreen>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
+    _pickAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
     _animationController.forward();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _pickAnimationController.dispose();
+    // Dispose all item-specific animation controllers
+    for (final controller in _itemAnimations.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -105,32 +116,58 @@ class _PicklistScreenState extends State<PicklistScreen>
     );
   }
 
-  // Method to handle item toggle with animation delay
-  void _togglePickStatusWithDelay(String itemId) async {
+  // Enhanced method to handle item toggle with smooth animation
+  void _togglePickStatusWithAnimation(String itemId) async {
     final provider = context.read<PicklistProvider>();
-    
-    // Add item to being picked set for visual feedback
+    final item = provider.getPicksForLocation(widget.locationId)
+        .firstWhere((item) => item.id == itemId);
+
+    // Store the original status to determine what action is being performed
+    final wasPickedBefore = item.isPicked;
+
+    // Create animation controller for this specific item if it doesn't exist
+    if (!_itemAnimations.containsKey(itemId)) {
+      _itemAnimations[itemId] = AnimationController(
+        duration: const Duration(milliseconds: 600),
+        vsync: this,
+      );
+    }
+
+    final animationController = _itemAnimations[itemId]!;
+
+    // Add item to animation tracking
     setState(() {
-      _itemsBeingPicked.add(itemId);
+      _itemsBeingAnimated.add(itemId);
     });
-    
-    // Toggle the status immediately in the provider
+
+    // If item is being picked (not unpicked), play success animation
+    if (!wasPickedBefore) {
+      // Start the pick animation (scale + fade effect)
+      animationController.forward();
+
+      // Wait for animation to reach halfway point before toggling status
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
+    // Toggle the status in the provider
     provider.togglePickStatus(widget.locationId, itemId);
-    
-    // If we're filtering by pending only and item was just picked, add delay
-    if (_statusFilter == false) {
-      // Wait a bit before removing from the being picked set
-      await Future.delayed(const Duration(milliseconds: 800));
+
+    // If filtering by pending only and item was just picked, wait for animation to complete
+    if (_statusFilter == false && !wasPickedBefore) {
+      // Item was just picked, wait for full animation before allowing filter to hide it
+      await Future.delayed(const Duration(milliseconds: 600));
     } else {
-      // For other filters, shorter delay
+      // For other cases, shorter delay
       await Future.delayed(const Duration(milliseconds: 300));
     }
-    
-    // Remove from being picked set if widget is still mounted
+
+    // Clean up animation state if widget is still mounted
     if (mounted) {
       setState(() {
-        _itemsBeingPicked.remove(itemId);
+        _itemsBeingAnimated.remove(itemId);
       });
+      // Reset animation controller for reuse
+      animationController.reset();
     }
   }
 
@@ -373,14 +410,7 @@ class _PicklistScreenState extends State<PicklistScreen>
                       end: Offset.zero,
                     ).animate(animation),                    child: Padding(
                       padding: AppSpacing.paddingVerticalSM,
-                      child: AnimatedOpacity(
-                        opacity: _itemsBeingPicked.contains(item.id) ? 0.6 : 1.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: PickItemCard(
-                          item: item,
-                          onToggle: () => _togglePickStatusWithDelay(item.id),
-                        ),
-                      ),
+                      child: _buildAnimatedPickItem(item),
                     ),
                   ),
                 );
@@ -391,7 +421,73 @@ class _PicklistScreenState extends State<PicklistScreen>
         ),
       ),
     );
-  }  Widget _buildEmptyState() {
+  }
+
+  // Enhanced animated pick item with success feedback
+  Widget _buildAnimatedPickItem(PickItem item) {
+    final isBeingAnimated = _itemsBeingAnimated.contains(item.id);
+    final animationController = _itemAnimations[item.id];
+
+    if (isBeingAnimated && animationController != null) {
+      // Create success animation with scale and color effects
+      final scaleAnimation = Tween<double>(
+        begin: 1.0,
+        end: 1.1,
+      ).animate(CurvedAnimation(
+        parent: animationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      ));
+
+      final fadeAnimation = Tween<double>(
+        begin: 1.0,
+        end: 0.8,
+      ).animate(CurvedAnimation(
+        parent: animationController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+      ));
+
+      return AnimatedBuilder(
+        animation: animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: scaleAnimation.value,
+            child: AnimatedOpacity(
+              opacity: fadeAnimation.value,
+              duration: const Duration(milliseconds: 100),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: AppRadius.radiusMD,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.success.withValues(alpha: 0.3),
+                      blurRadius: 8 * scaleAnimation.value,
+                      spreadRadius: 2 * scaleAnimation.value,
+                    ),
+                  ],
+                ),
+                child: PickItemCard(
+                  item: item,
+                  onToggle: () => _togglePickStatusWithAnimation(item.id),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    // Default state - no animation
+    return AnimatedOpacity(
+      opacity: isBeingAnimated ? 0.7 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: PickItemCard(
+        item: item,
+        onToggle: () => _togglePickStatusWithAnimation(item.id),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     // Check if it's because of filters or genuinely no items
     final hasFilters = _hasActiveFilters();
     
