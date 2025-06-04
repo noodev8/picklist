@@ -1,0 +1,20 @@
+TABLE localstock:
+
+'code' is the actual shoe ( what we are picking )
+'groupid' lets us link with other tables for identify other details.
+'location' is the location of the pick.
+'brand' is helpful for finding the pick as it lets us know the brand of the shoe.
+
+'ordernum' - if ordernum is '#FREE' it is NOT a pick. if there is anything other than '#FREE' in ordernum and 'qty' is 1, it is a pick. ( generally it will start with BC)
+
+'qty' if it is a pick it will ALWAYS be qty 1. if it has been picked the qty will be 0.
+
+1 = to be picked
+0 = picked
+
+
+TABLE skusummary:
+
+this table is linked by the groupid and contains any other information we might need.
+
+
