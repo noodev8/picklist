@@ -216,13 +216,15 @@ class _DashboardScreenState extends State<DashboardScreen>
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: provider.locations.length,
+              itemCount: provider.getSortedLocations().length,
               separatorBuilder: (context, index) => AppSpacing.verticalSpaceMD,
               itemBuilder: (context, index) {
-                final location = provider.locations[index];
+                // Use sorted locations with completed ones at the bottom
+                final sortedLocations = provider.getSortedLocations();
+                final location = sortedLocations[index];
                 final remainingPicks = provider.getRemainingPicksForLocation(location.id);
                 final totalPicks = provider.getTotalPicksForLocation(location.id);
-                
+
                 return LocationCard(
                   location: location,
                   remainingPicks: remainingPicks,

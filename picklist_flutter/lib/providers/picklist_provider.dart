@@ -88,6 +88,29 @@ class PicklistProvider with ChangeNotifier {
     return getCompletedPicks() / total;
   }
 
+  /// Returns locations sorted with completed locations at the bottom
+  List<PickLocation> getSortedLocations() {
+    final sortedLocations = List<PickLocation>.from(locations);
+
+    // Sort locations: incomplete first, completed last
+    sortedLocations.sort((a, b) {
+      final aRemaining = getRemainingPicksForLocation(a.id);
+      final bRemaining = getRemainingPicksForLocation(b.id);
+      final aCompleted = aRemaining == 0;
+      final bCompleted = bRemaining == 0;
+
+      // If completion status is different, sort by completion (incomplete first)
+      if (aCompleted != bCompleted) {
+        return aCompleted ? 1 : -1;
+      }
+
+      // If both have same completion status, maintain original order
+      return 0;
+    });
+
+    return sortedLocations;
+  }
+
   List<PickItem> searchItems(String query) {
     if (query.isEmpty) return [];
 

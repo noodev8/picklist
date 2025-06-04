@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/widgets/status_chip.dart';
 import '../../../../models/pick_location.dart';
 
 /// Enhanced location card with progress indicator and status
@@ -36,8 +35,12 @@ class LocationCard extends StatelessWidget {
           padding: AppSpacing.cardPadding,
           decoration: BoxDecoration(
             borderRadius: AppRadius.radiusMD,
+            // Make the entire card background fully green when completed
+            color: isCompleted
+                ? AppColors.success.withValues(alpha: 0.2)
+                : null,
             border: Border.all(
-              color: isCompleted 
+              color: isCompleted
                   ? AppColors.success.withValues(alpha: 0.3)
                   : AppColors.border,
               width: isCompleted ? 2 : 1,
@@ -181,16 +184,7 @@ class LocationCard extends StatelessWidget {
             ],
           ),
         ],
-        if (isCompleted && hasPicks)
-          const StatusChip(
-            status: PickStatus.picked,
-            size: ChipSize.small,
-          )
-        else if (hasPicks)
-          const StatusChip(
-            status: PickStatus.pending,
-            size: ChipSize.small,
-          ),
+        // StatusChip removed as requested - no pending/complete chip display
       ],
     );
   }
