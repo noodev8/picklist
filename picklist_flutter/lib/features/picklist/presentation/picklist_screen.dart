@@ -9,6 +9,7 @@ import '../../../models/pick_item.dart';
 import 'widgets/pick_item_card.dart';
 import 'widgets/pick_stats_header.dart';
 import 'widgets/filter_bottom_sheet.dart';
+import 'widgets/simple_rack_header.dart';
 
 /// Enhanced picklist screen with search, filtering, and better UX
 class PicklistScreen extends StatefulWidget {
@@ -205,7 +206,7 @@ class _PicklistScreenState extends State<PicklistScreen>
                 ),
               ),
               _buildFilterSection(),
-              _buildPickList(items, provider),
+              _buildRackGroupedPickList(items, provider),
             ],
           );
         },
@@ -374,50 +375,84 @@ class _PicklistScreenState extends State<PicklistScreen>
     );
   }
 
-  Widget _buildPickList(List<PickItem> items, PicklistProvider provider) {
+  Widget _buildRackGroupedPickList(List<PickItem> items, PicklistProvider provider) {
     if (items.isEmpty) {
       return SliverFillRemaining(
         child: _buildEmptyState(),
       );
     }
 
+    // Group items by rack location
+    final Map<String, List<PickItem>> groupedItems = {};
+    for (final item in items) {
+      if (!groupedItems.containsKey(item.location)) {
+        groupedItems[item.location] = [];
+      }
+      groupedItems[item.location]!.add(item);
+    }
+
+    // Create a flat list with headers and items
+    final List<Widget> widgets = [];
+    int animationIndex = 0;
+
+    for (final entry in groupedItems.entries) {
+      final rackLocation = entry.key;
+      final rackItems = entry.value;
+      final pickedCount = rackItems.where((item) => item.isPicked).length;
+
+      // Add rack header
+      widgets.add(
+        SimpleRackHeader(
+          rackLocation: rackLocation,
+          itemCount: rackItems.length,
+          pickedCount: pickedCount,
+        ),
+      );
+
+      // Add items for this rack
+      for (final item in rackItems) {
+        widgets.add(
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              final animation = Tween<double>(
+                begin: 0.0,
+                end: 1.0,
+              ).animate(CurvedAnimation(
+                parent: _animationController,
+                curve: Interval(
+                  (animationIndex * 0.05).clamp(0.0, 1.0),
+                  ((animationIndex * 0.05) + 0.2).clamp(0.0, 1.0),
+                  curve: Curves.easeOut,
+                ),
+              ));
+
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: Padding(
+                    padding: AppSpacing.paddingVerticalSM,
+                    child: _buildAnimatedPickItem(item),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+        animationIndex++;
+      }
+    }
+
     return SliverPadding(
       padding: AppSpacing.screenPadding,
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final item = items[index];
-            return AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                final animation = Tween<double>(
-                  begin: 0.0,
-                  end: 1.0,
-                ).animate(CurvedAnimation(
-                  parent: _animationController,
-                  curve: Interval(
-                    (index * 0.1).clamp(0.0, 1.0),
-                    ((index * 0.1) + 0.3).clamp(0.0, 1.0),
-                    curve: Curves.easeOut,
-                  ),
-                ));
-
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.3),
-                      end: Offset.zero,
-                    ).animate(animation),                    child: Padding(
-                      padding: AppSpacing.paddingVerticalSM,
-                      child: _buildAnimatedPickItem(item),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-          childCount: items.length,
+          (context, index) => widgets[index],
+          childCount: widgets.length,
         ),
       ),
     );

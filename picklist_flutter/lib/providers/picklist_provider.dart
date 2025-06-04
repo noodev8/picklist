@@ -37,7 +37,10 @@ class PicklistProvider with ChangeNotifier {
   }
 
   List<PickItem> getPicksForLocation(String locationId) {
-    return _pickItems[locationId] ?? [];
+    final items = _pickItems[locationId] ?? [];
+    // Sort items by rack location for better picker workflow
+    items.sort((a, b) => a.location.compareTo(b.location));
+    return items;
   }
 
   void togglePickStatus(String locationId, String pickId) {
