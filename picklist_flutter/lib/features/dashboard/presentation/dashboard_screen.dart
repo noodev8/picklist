@@ -197,27 +197,8 @@ class _DashboardScreenState extends State<DashboardScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Pick Locations',
-                  style: AppTypography.headlineMedium,
-                ),
-                TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to all locations view
-                  },
-                  child: Text(
-                    'View All',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            AppSpacing.verticalSpaceMD,
+            // Removed 'Pick Locations' title and 'View All' button to save space
+            // and provide cleaner UX for picking workflow
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
