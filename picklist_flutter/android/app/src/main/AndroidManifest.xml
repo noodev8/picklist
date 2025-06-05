@@ -5,7 +5,7 @@
 
 
     <application
-        android:label="picklist_flutter"
+        android:label="Pick List"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
