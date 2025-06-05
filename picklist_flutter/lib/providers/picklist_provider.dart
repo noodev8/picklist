@@ -55,13 +55,8 @@ class PicklistProvider with ChangeNotifier {
   /// [locationId] - The location ID to load picks for
   /// [forceRefresh] - Whether to force refresh even if data is cached
   Future<void> loadPicksForLocation(String locationId, {bool forceRefresh = false}) async {
-    print('🔍 DEBUG Provider: Loading picks for location: $locationId');
-    print('🔍 DEBUG Provider: Force refresh: $forceRefresh');
-    print('🔍 DEBUG Provider: Has cached data: ${_pickItems.containsKey(locationId)}');
-
     // Return cached data if available and not forcing refresh
     if (!forceRefresh && _pickItems.containsKey(locationId)) {
-      print('🔍 DEBUG Provider: Using cached data for $locationId');
       return;
     }
 
@@ -69,12 +64,8 @@ class PicklistProvider with ChangeNotifier {
     _clearError();
 
     try {
-      print('🔍 DEBUG Provider: Calling API for location: $locationId');
-
       // Get picks from API for this location
       final List<PickItem> picks = await GetPicksApi.getPicksForLocation(locationId);
-
-      print('🔍 DEBUG Provider: Received ${picks.length} picks from API');
 
       // Cache the picks
       _pickItems[locationId] = picks;
@@ -82,10 +73,7 @@ class PicklistProvider with ChangeNotifier {
       // Update location total picks count
       _updateLocationPickCount(locationId, picks.length);
 
-      print('🔍 DEBUG Provider: Successfully cached picks for $locationId');
-
     } catch (e) {
-      print('🔍 DEBUG Provider: Error loading picks: $e');
       _setError('Failed to load picks: ${e.toString()}');
       // Ensure empty list if error occurs
       _pickItems[locationId] = [];
@@ -323,16 +311,12 @@ class PicklistProvider with ChangeNotifier {
   /// This populates the location counts so users can see pick quantities right away
   /// without having to navigate to each location first
   Future<void> loadAllPicksAfterLogin() async {
-    print('🔍 DEBUG Provider: Loading all picks data after login');
     _setLoading(true);
     _clearError();
 
     try {
       // Get pick counts for all locations to update the dashboard
-      print('🔍 DEBUG Provider: Fetching pick counts by location');
       final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation();
-
-      print('🔍 DEBUG Provider: Received counts: $counts');
 
       // Update location pick counts
       for (int i = 0; i < _locations.length; i++) {
@@ -343,28 +327,22 @@ class PicklistProvider with ChangeNotifier {
           name: _locations[i].name,
           totalPicks: count,
         );
-        print('🔍 DEBUG Provider: Updated location $locationId with $count picks');
       }
 
       // Optionally pre-load picks for locations with items
       // This makes subsequent navigation faster
-      print('🔍 DEBUG Provider: Pre-loading picks for locations with items');
       for (final location in _locations) {
         if (location.totalPicks > 0) {
           try {
-            print('🔍 DEBUG Provider: Pre-loading picks for ${location.id}');
             await loadPicksForLocation(location.id);
           } catch (e) {
-            print('🔍 DEBUG Provider: Failed to pre-load ${location.id}: $e');
             // Continue with other locations even if one fails
           }
         }
       }
 
-      print('🔍 DEBUG Provider: Successfully loaded all picks data after login');
       notifyListeners();
     } catch (e) {
-      print('🔍 DEBUG Provider: Error loading picks after login: $e');
       _setError('Failed to load picks data: ${e.toString()}');
     } finally {
       _setLoading(false);

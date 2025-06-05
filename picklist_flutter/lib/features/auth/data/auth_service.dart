@@ -109,4 +109,28 @@ class AuthService {
   bool isValidPin(String pin) {
     return pin.length == 4 && RegExp(r'^\d{4}$').hasMatch(pin);
   }
+
+  /// Get authorization headers for API requests
+  /// Returns headers with JWT token if available
+  static Future<Map<String, String>> getAuthHeaders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      return headers;
+    } catch (e) {
+      // Return basic headers if error occurs
+      return {
+        'Content-Type': 'application/json',
+      };
+    }
+  }
 }

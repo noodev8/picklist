@@ -5,7 +5,14 @@ API Route: get_picks
 Method: POST
 Purpose: Retrieves all available picks from the database. Returns picks that need to be picked (qty=1, ordernum!='#FREE')
          with location details and brand information for warehouse picking operations.
+Authentication: Required - JWT token in Authorization header
 =======================================================================================================================================
+Request Headers:
+{
+  "Authorization": "Bearer <JWT_TOKEN>",  // string, required - JWT token from login_pin
+  "Content-Type": "application/json"     // string, required
+}
+
 Request Payload:
 {
   // No required parameters - returns all available picks
@@ -33,6 +40,8 @@ Success Response:
 =======================================================================================================================================
 Return Codes:
 "SUCCESS"
+"UNAUTHORIZED"        // Missing or invalid JWT token
+"FORBIDDEN"           // Expired JWT token
 "DATABASE_ERROR"
 "SERVER_ERROR"
 =======================================================================================================================================
@@ -41,25 +50,14 @@ Return Codes:
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { authenticateToken } = require('../middleware/auth');
 
-// POST /get_picks
-router.post('/', async (req, res) => {
+// POST /get_picks - Protected route requiring authentication
+router.post('/', authenticateToken, async (req, res) => {
     try {
-        console.log('🔍 DEBUG Server: get_picks API called');
-        console.log('🔍 DEBUG Server: Request body:', req.body);
-
         // Safely extract optional location filter from request body
         // Handle cases where req.body might be undefined or null
         const location_filter = req.body && req.body.location_filter ? req.body.location_filter : null;
-
-        console.log('🔍 DEBUG Server: Location filter:', location_filter);
-
-        // Optional: Add location filter if provided
-        if (location_filter) {
-            console.log('🔍 DEBUG Server: Will filter by location containing:', location_filter);
-        } else {
-            console.log('🔍 DEBUG Server: No location filter - returning all picks');
-        }
         
         // Build the SQL query to get all available picks
         // Join localstock with skusummary to get additional details like supplier
@@ -94,15 +92,8 @@ router.post('/', async (req, res) => {
         // This groups picks by location so pickers can work efficiently
         query += ` ORDER BY l.location, l.pickorder, l.code`;
 
-        console.log('🔍 DEBUG Server: Final SQL query:', query);
-        console.log('🔍 DEBUG Server: Query parameters:', queryParams);
-
         // Execute the query
         const result = await pool.query(query, queryParams);
-
-        console.log('🔍 DEBUG Server: Query executed successfully');
-        console.log('🔍 DEBUG Server: Number of rows returned:', result.rows.length);
-        console.log('🔍 DEBUG Server: First few rows:', result.rows.slice(0, 2));
 
         // Format the response data
         const picks = result.rows.map(row => ({
@@ -116,9 +107,6 @@ router.post('/', async (req, res) => {
             qty: row.qty,
             pickorder: row.pickorder || 0  // Default to 0 if pickorder is null
         }));
-        
-        console.log('🔍 DEBUG Server: Formatted picks data:', picks.slice(0, 2));
-        console.log('🔍 DEBUG Server: Total picks to return:', picks.length);
 
         // Return successful response with picks data
         const response = {
@@ -127,12 +115,11 @@ router.post('/', async (req, res) => {
             total_picks: picks.length
         };
 
-        console.log('🔍 DEBUG Server: Sending response with return_code:', response.return_code);
         res.json(response);
 
     } catch (error) {
         // Log the error for debugging
-        console.error('🔍 DEBUG Server: Error in get_picks:', error);
+        console.error('Error in get_picks:', error);
         
         // Return database error response
         res.status(500).json({

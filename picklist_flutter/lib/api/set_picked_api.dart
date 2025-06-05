@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import '../features/auth/data/auth_service.dart';
 
 class SetPickedApi {
   
@@ -51,13 +52,14 @@ class SetPickedApi {
         'id': itemId,
         'action': action,
       };
-      
+
+      // Get authentication headers
+      final headers = await AuthService.getAuthHeaders();
+
       // Make HTTP POST request to the server
       final response = await http.post(
         Uri.parse(AppConfig.setPickedUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: json.encode(requestBody),
       ).timeout(AppConfig.requestTimeout);
       

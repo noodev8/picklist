@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/pick_item.dart';
+import '../features/auth/data/auth_service.dart';
 
 class GetPicksApi {
   
@@ -21,10 +22,6 @@ class GetPicksApi {
   /// Returns a list of PickItem objects or throws an exception on error
   static Future<List<PickItem>> getAllPicks({String? locationFilter}) async {
     try {
-      print('🔍 DEBUG: Starting getAllPicks API call');
-      print('🔍 DEBUG: Location filter: $locationFilter');
-      print('🔍 DEBUG: API URL: ${AppConfig.getPicksUrl}');
-
       // Prepare request body
       final Map<String, dynamic> requestBody = {};
 
@@ -33,43 +30,31 @@ class GetPicksApi {
         requestBody['location_filter'] = locationFilter;
       }
 
-      print('🔍 DEBUG: Request body: ${json.encode(requestBody)}');
+      // Get authentication headers
+      final headers = await AuthService.getAuthHeaders();
 
       // Make HTTP POST request to the server
       final response = await http.post(
         Uri.parse(AppConfig.getPicksUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: json.encode(requestBody),
       ).timeout(AppConfig.requestTimeout);
 
-      print('🔍 DEBUG: Response status code: ${response.statusCode}');
-      print('🔍 DEBUG: Response body: ${response.body}');
-      
       // Check if request was successful
       if (response.statusCode == 200) {
         // Parse the JSON response
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-
-        print('🔍 DEBUG: Parsed JSON response: $jsonResponse');
-        print('🔍 DEBUG: Return code: ${jsonResponse['return_code']}');
 
         // Check if the API returned success
         if (jsonResponse['return_code'] == 'SUCCESS') {
           // Extract picks array from response
           final List<dynamic> picksJson = jsonResponse['picks'] ?? [];
 
-          print('🔍 DEBUG: Raw picks array length: ${picksJson.length}');
-          print('🔍 DEBUG: First few picks: ${picksJson.take(2).toList()}');
-
           // Convert JSON picks to PickItem objects
           final List<PickItem> picks = picksJson.map((pickJson) {
-            print('🔍 DEBUG: Converting pick: $pickJson');
             return PickItem.fromApiResponse(pickJson);
           }).toList();
 
-          print('🔍 DEBUG: Converted ${picks.length} picks successfully');
           return picks;
         } else {
           // API returned an error

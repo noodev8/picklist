@@ -5,7 +5,14 @@ API Route: set_picked
 Method: POST
 Purpose: Allows users to pick or unpick items in the warehouse. Updates the qty field in localstock table.
          qty = 1 means "to be picked", qty = 0 means "picked"
+Authentication: Required - JWT token in Authorization header
 =======================================================================================================================================
+Request Headers:
+{
+  "Authorization": "Bearer <JWT_TOKEN>",  // string, required - JWT token from login_pin
+  "Content-Type": "application/json"     // string, required
+}
+
 Request Payload:
 {
   "id": "unique_id_123",              // string, required - unique identifier from localstock table
@@ -28,6 +35,8 @@ Success Response:
 =======================================================================================================================================
 Return Codes:
 "SUCCESS"
+"UNAUTHORIZED"        // Missing or invalid JWT token
+"FORBIDDEN"           // Expired JWT token
 "MISSING_FIELDS"
 "INVALID_ACTION"
 "ITEM_NOT_FOUND"
