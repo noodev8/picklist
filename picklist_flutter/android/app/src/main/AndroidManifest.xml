@@ -1,9 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+<!-- Network permission - required for API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+
     <application
         android:label="picklist_flutter"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+	android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
