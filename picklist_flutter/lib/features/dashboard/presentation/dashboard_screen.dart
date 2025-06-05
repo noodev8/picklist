@@ -5,7 +5,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 
 import '../../auth/state/auth_provider.dart';
-import '../../auth/presentation/login_screen.dart';
+import '../../splash/presentation/splash_screen.dart';
 import '../../picklist/presentation/picklist_screen.dart';
 import '../../../providers/picklist_provider.dart';
 import 'widgets/stats_card.dart';
@@ -52,16 +52,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// This ensures users can see pick counts for all locations right away
   /// instead of having to click on each location to see if there are picks
   Future<void> _loadPicksAfterLogin() async {
-    print('🔍 DEBUG Dashboard: Loading picks data after login');
-
     // Get the picklist provider and load all picks data
     final picklistProvider = context.read<PicklistProvider>();
 
     // Load all picks data in the background
     // This will update location counts and pre-load pick data
     await picklistProvider.loadAllPicksAfterLogin();
-
-    print('🔍 DEBUG Dashboard: Finished loading picks data after login');
   }
 
   @override
@@ -73,12 +69,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _logout() async {
     final authProvider = context.read<AuthProvider>();
     await authProvider.logout();
-    
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const LoginScreen(),
+              const SplashScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
@@ -89,9 +85,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _navigateToPicklist(String locationId, String locationName) {
-    print('🔍 DEBUG Dashboard: Location tapped - ID: $locationId, Name: $locationName');
-    print('🔍 DEBUG Dashboard: Navigating to PicklistScreen');
-
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PicklistScreen(
@@ -100,8 +93,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
     );
-
-    print('🔍 DEBUG Dashboard: Navigation to PicklistScreen initiated');
   }
 
   @override

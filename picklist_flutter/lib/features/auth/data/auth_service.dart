@@ -51,6 +51,59 @@ class AuthService {
     }
   }
 
+  /// Check if stored JWT token is valid and not expired
+  /// Returns true if token exists and is valid, false otherwise
+  Future<bool> hasValidToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+      final lastLoginString = prefs.getString(_lastLoginKey);
+
+      // Check if token and login time exist
+      if (token == null || lastLoginString == null) {
+        return false;
+      }
+
+      // Parse the last login time
+      final lastLogin = DateTime.parse(lastLoginString);
+      final now = DateTime.now();
+
+      // Check if token is within 90-day validity period
+      final daysSinceLogin = now.difference(lastLogin).inDays;
+      if (daysSinceLogin >= 90) {
+        // Token has expired, clean up stored data
+        await logout();
+        return false;
+      }
+
+      // Token exists and is within validity period
+      return true;
+    } catch (e) {
+      // If any error occurs, consider token invalid
+      return false;
+    }
+  }
+
+  /// Attempt automatic authentication using stored token
+  /// Returns true if successfully authenticated, false otherwise
+  Future<bool> tryAutoAuthenticate() async {
+    try {
+      // Check if we have a valid token
+      if (!await hasValidToken()) {
+        return false;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // Update authentication state
+      await prefs.setBool(_isLoggedInKey, true);
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Logout user
   Future<void> logout() async {
     try {
@@ -108,6 +161,28 @@ class AuthService {
   /// Validate PIN format
   bool isValidPin(String pin) {
     return pin.length == 4 && RegExp(r'^\d{4}$').hasMatch(pin);
+  }
+
+  /// Get days remaining until token expires
+  /// Returns null if no token or error occurs
+  Future<int?> getDaysUntilTokenExpires() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastLoginString = prefs.getString(_lastLoginKey);
+
+      if (lastLoginString == null) {
+        return null;
+      }
+
+      final lastLogin = DateTime.parse(lastLoginString);
+      final now = DateTime.now();
+      final daysSinceLogin = now.difference(lastLogin).inDays;
+      final daysRemaining = 90 - daysSinceLogin;
+
+      return daysRemaining > 0 ? daysRemaining : 0;
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Get authorization headers for API requests

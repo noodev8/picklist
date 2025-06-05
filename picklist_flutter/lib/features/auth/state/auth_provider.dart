@@ -30,6 +30,35 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Attempt automatic authentication using stored token
+  /// Returns true if successfully authenticated, false if login is required
+  Future<bool> tryAutoAuthenticate() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final success = await _authService.tryAutoAuthenticate();
+
+      if (success) {
+        _isAuthenticated = true;
+        _lastLoginTime = await _authService.getLastLoginTime();
+        _clearError();
+      } else {
+        _isAuthenticated = false;
+        _lastLoginTime = null;
+      }
+
+      return success;
+    } catch (e) {
+      _isAuthenticated = false;
+      _lastLoginTime = null;
+      _setError('Auto-authentication failed');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Authenticate user with PIN
   Future<bool> authenticate(String pin) async {
     _setLoading(true);

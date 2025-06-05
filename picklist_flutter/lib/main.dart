@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'features/auth/presentation/login_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'providers/picklist_provider.dart';
 import 'theme/app_theme.dart';
@@ -25,7 +25,7 @@ class PicklistApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        home: const LoginScreen(),
+        home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );
