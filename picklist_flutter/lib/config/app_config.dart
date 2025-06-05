@@ -22,17 +22,13 @@ class AppConfig {
   static const String loginPinEndpoint = '/login_pin';
 
   // Full API URLs
-  static String get getPicksUrl => '$baseUrl$getPicksEndpoint';
-  static String get setPickedUrl => '$baseUrl$setPickedEndpoint';
-  static String get loginPinUrl => '$baseUrl$loginPinEndpoint';
-  
+  static String get getPicksUrl => '$apiBaseUrl$getPicksEndpoint';
+  static String get setPickedUrl => '$apiBaseUrl$setPickedEndpoint';
+  static String get loginPinUrl => '$apiBaseUrl$loginPinEndpoint';
+
   // Request timeout settings
   static const Duration requestTimeout = Duration(seconds: 30);
   static const Duration connectionTimeout = Duration(seconds: 10);
-  
-  // App Settings
-  static const String appName = 'Picklist';
-  static const String appVersion = '1.0.0';
   
   // Location mapping for filtering API calls
   // Maps UI location IDs to API filter strings
