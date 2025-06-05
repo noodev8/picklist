@@ -327,4 +327,56 @@ class PicklistProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  /// Loads all picks data immediately after login
+  /// This populates the location counts so users can see pick quantities right away
+  /// without having to navigate to each location first
+  Future<void> loadAllPicksAfterLogin() async {
+    print('🔍 DEBUG Provider: Loading all picks data after login');
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Get pick counts for all locations to update the dashboard
+      print('🔍 DEBUG Provider: Fetching pick counts by location');
+      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation();
+
+      print('🔍 DEBUG Provider: Received counts: $counts');
+
+      // Update location pick counts
+      for (int i = 0; i < _locations.length; i++) {
+        final locationId = _locations[i].id;
+        final count = counts[locationId] ?? 0;
+        _locations[i] = PickLocation(
+          id: locationId,
+          name: _locations[i].name,
+          totalPicks: count,
+        );
+        print('🔍 DEBUG Provider: Updated location $locationId with $count picks');
+      }
+
+      // Optionally pre-load picks for locations with items
+      // This makes subsequent navigation faster
+      print('🔍 DEBUG Provider: Pre-loading picks for locations with items');
+      for (final location in _locations) {
+        if (location.totalPicks > 0) {
+          try {
+            print('🔍 DEBUG Provider: Pre-loading picks for ${location.id}');
+            await loadPicksForLocation(location.id);
+          } catch (e) {
+            print('🔍 DEBUG Provider: Failed to pre-load ${location.id}: $e');
+            // Continue with other locations even if one fails
+          }
+        }
+      }
+
+      print('🔍 DEBUG Provider: Successfully loaded all picks data after login');
+      notifyListeners();
+    } catch (e) {
+      print('🔍 DEBUG Provider: Error loading picks after login: $e');
+      _setError('Failed to load picks data: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
+  }
 }

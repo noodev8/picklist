@@ -28,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void initState() {
     super.initState();
     _setupAnimations();
+    _loadPicksAfterLogin();
   }
 
   void _setupAnimations() {
@@ -45,6 +46,22 @@ class _DashboardScreenState extends State<DashboardScreen>
     ));
 
     _animationController.forward();
+  }
+
+  /// Load all picks data immediately after dashboard loads
+  /// This ensures users can see pick counts for all locations right away
+  /// instead of having to click on each location to see if there are picks
+  Future<void> _loadPicksAfterLogin() async {
+    print('🔍 DEBUG Dashboard: Loading picks data after login');
+
+    // Get the picklist provider and load all picks data
+    final picklistProvider = context.read<PicklistProvider>();
+
+    // Load all picks data in the background
+    // This will update location counts and pre-load pick data
+    await picklistProvider.loadAllPicksAfterLogin();
+
+    print('🔍 DEBUG Dashboard: Finished loading picks data after login');
   }
 
   @override
