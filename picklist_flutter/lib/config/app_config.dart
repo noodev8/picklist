@@ -9,8 +9,13 @@ Contains API endpoints, server URLs, and other app-wide configuration settings
 
 class AppConfig {
   // API Configuration
-  static const String baseUrl = 'http://192.168.1.182:3000';
-  
+  // static const String baseUrl = 'http://192.168.1.182:3000';
+  static const String apiBaseUrl = 'http://77.68.13.150:3007'; // Test Server
+
+  // App Settings
+  static const String appName = 'Pick List';
+  static const String appVersion = '1.0.1';
+ 
   // API Endpoints
   static const String getPicksEndpoint = '/get_picks';
   static const String setPickedEndpoint = '/set_picked';
