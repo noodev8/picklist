@@ -1,23 +1,40 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../api/login_pin_api.dart';
 
 /// Service for handling authentication operations
 class AuthService {
-  static const String _pinKey = 'user_pin';
-  static const String _defaultPin = '1234'; // Default PIN for testing
+  static const String _tokenKey = 'jwt_token';
+  static const String _userDataKey = 'user_data';
   static const String _isLoggedInKey = 'is_logged_in';
   static const String _lastLoginKey = 'last_login';
 
-  /// Authenticate user with PIN
+  /// Authenticate user with PIN using API
   Future<bool> authenticate(String pin) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedPin = prefs.getString(_pinKey) ?? _defaultPin;
-      
-      if (pin == savedPin) {
+      // Validate PIN format (must be 4 digits)
+      if (!isValidPin(pin)) {
+        return false;
+      }
+
+      // Convert PIN to integer for API call
+      final pinNumber = int.parse(pin);
+
+      // Call login API
+      final response = await LoginPinApi.authenticate(pinNumber);
+
+      // Check if authentication was successful
+      if (response.isSuccess && response.token != null && response.user != null) {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Store JWT token and user data
+        await prefs.setString(_tokenKey, response.token!);
+        await prefs.setString(_userDataKey, response.user!.toJson().toString());
         await prefs.setBool(_isLoggedInKey, true);
         await prefs.setString(_lastLoginKey, DateTime.now().toIso8601String());
+
         return true;
       }
+
       return false;
     } catch (e) {
       return false;
@@ -38,6 +55,8 @@ class AuthService {
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userDataKey);
       await prefs.setBool(_isLoggedInKey, false);
       await prefs.remove(_lastLoginKey);
     } catch (e) {
@@ -59,19 +78,30 @@ class AuthService {
     }
   }
 
-  /// Change PIN (for future use)
-  Future<bool> changePin(String currentPin, String newPin) async {
+  /// Get stored JWT token
+  Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedPin = prefs.getString(_pinKey) ?? _defaultPin;
-      
-      if (currentPin == savedPin) {
-        await prefs.setString(_pinKey, newPin);
-        return true;
-      }
-      return false;
+      return prefs.getString(_tokenKey);
     } catch (e) {
-      return false;
+      return null;
+    }
+  }
+
+  /// Get stored user data
+  Future<LoginUser?> getUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString(_userDataKey);
+      if (userDataString != null) {
+        // Parse user data from stored string
+        // Note: In a real app, you'd want to store this as JSON
+        // For now, we'll return null and rely on token validation
+        return null;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

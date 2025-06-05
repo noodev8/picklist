@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/picklist_provider.dart';
+import '../features/auth/state/auth_provider.dart';
 import '../theme/app_theme.dart';
 import 'location_list_screen.dart';
 
@@ -30,8 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final provider = Provider.of<PicklistProvider>(context, listen: false);
-    final success = await provider.authenticate(_pinController.text);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.authenticate(_pinController.text);
 
     if (success) {
       if (!mounted) return;
@@ -40,7 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       setState(() {
-        _errorMessage = 'Invalid PIN';
+        _errorMessage = authProvider.errorMessage.isNotEmpty
+            ? authProvider.errorMessage
+            : 'Invalid PIN';
       });
     }
   }

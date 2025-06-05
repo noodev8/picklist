@@ -77,33 +77,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Change user PIN
-  Future<bool> changePin(String currentPin, String newPin) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      // Validate new PIN format
-      if (!_authService.isValidPin(newPin)) {
-        _setError('New PIN must be 4 digits');
-        return false;
-      }
-
-      final success = await _authService.changePin(currentPin, newPin);
-      
-      if (!success) {
-        _setError('Current PIN is incorrect');
-      }
-
-      return success;
-    } catch (e) {
-      _setError('Failed to change PIN');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   /// Clear error message
   void clearError() {
     _clearError();

@@ -1,14 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pick_item.dart';
 import '../models/pick_location.dart';
 import '../api/get_picks_api.dart';
 import '../api/set_picked_api.dart';
-import '../config/app_config.dart';
 
 class PicklistProvider with ChangeNotifier {
-  static const String _pinKey = 'user_pin';
-  static const String _defaultPin = '1234'; // Default PIN for testing
   bool _isAuthenticated = false;
 
   // Cache for pick items by location
@@ -43,13 +39,8 @@ class PicklistProvider with ChangeNotifier {
     ];
   }
 
-  Future<bool> authenticate(String pin) async {
-    final prefs = await SharedPreferences.getInstance();
-    String savedPin = prefs.getString(_pinKey) ?? _defaultPin;
-    _isAuthenticated = pin == savedPin;
-    notifyListeners();
-    return _isAuthenticated;
-  }
+  // Authentication is now handled by AuthProvider
+  // This provider focuses on pick data management
 
   Future<void> logout() async {
     _isAuthenticated = false;

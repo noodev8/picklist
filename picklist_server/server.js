@@ -12,10 +12,12 @@ app.use(express.json());
 // Import routes
 const get_picks = require("./routes/get_picks");
 const set_picked = require("./routes/set_picked");
+const login_pin = require("./routes/login_pin");
 
 // Route definitions
 app.use("/get_picks", get_picks);
 app.use("/set_picked", set_picked);
+app.use("/login_pin", login_pin);
 
 // Root route
 app.get('/', (req, res) => {

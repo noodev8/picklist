@@ -14,10 +14,12 @@ class AppConfig {
   // API Endpoints
   static const String getPicksEndpoint = '/get_picks';
   static const String setPickedEndpoint = '/set_picked';
-  
+  static const String loginPinEndpoint = '/login_pin';
+
   // Full API URLs
   static String get getPicksUrl => '$baseUrl$getPicksEndpoint';
   static String get setPickedUrl => '$baseUrl$setPickedEndpoint';
+  static String get loginPinUrl => '$baseUrl$loginPinEndpoint';
   
   // Request timeout settings
   static const Duration requestTimeout = Duration(seconds: 30);
@@ -26,9 +28,6 @@ class AppConfig {
   // App Settings
   static const String appName = 'Picklist';
   static const String appVersion = '1.0.0';
-  
-  // Default PIN for testing (should be removed in production)
-  static const String defaultPin = '1234';
   
   // Location mapping for filtering API calls
   // Maps UI location IDs to API filter strings

@@ -219,9 +219,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildHelpText() {
     return Text(
-      'Default PIN: 1234',
+      'Enter your 4-digit PIN',
       style: AppTypography.bodySmall.copyWith(
-        color: const Color.fromARGB(0, 0, 0, 0),
+        color: Colors.grey[600],
       ),
     );
   }
