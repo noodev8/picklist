@@ -55,14 +55,18 @@ class PicklistProvider with ChangeNotifier {
   ///
   /// [locationId] - The location ID to load picks for
   /// [forceRefresh] - Whether to force refresh even if data is cached
-  Future<void> loadPicksForLocation(String locationId, {bool forceRefresh = false}) async {
+  /// [suppressNotifications] - Whether to suppress notifyListeners calls (for batch operations)
+  Future<void> loadPicksForLocation(String locationId, {bool forceRefresh = false, bool suppressNotifications = false}) async {
     // Return cached data if available and not forcing refresh
     if (!forceRefresh && _pickItems.containsKey(locationId)) {
       return;
     }
 
-    _setLoading(true);
-    _clearError();
+    // Only set loading state if not suppressing notifications
+    if (!suppressNotifications) {
+      _setLoading(true);
+      _clearError();
+    }
 
     try {
       // Get picks from API for this location
@@ -71,20 +75,31 @@ class PicklistProvider with ChangeNotifier {
       // Cache the picks
       _pickItems[locationId] = picks;
 
-      // Update location total picks count
-      _updateLocationPickCount(locationId, picks.length);
+      // Update location total picks count (suppress notifications if requested)
+      if (suppressNotifications) {
+        _updateLocationPickCountSilent(locationId, picks.length);
+      } else {
+        _updateLocationPickCount(locationId, picks.length);
+      }
 
     } on AuthenticationException {
       // Re-throw authentication exceptions so they can be handled by the UI
-      _setError('Authentication failed');
+      if (!suppressNotifications) {
+        _setError('Authentication failed');
+      }
       _pickItems[locationId] = [];
       rethrow;
     } catch (e) {
-      _setError('Failed to load picks: ${e.toString()}');
+      if (!suppressNotifications) {
+        _setError('Failed to load picks: ${e.toString()}');
+      }
       // Ensure empty list if error occurs
       _pickItems[locationId] = [];
     } finally {
-      _setLoading(false);
+      // Only set loading state if not suppressing notifications
+      if (!suppressNotifications) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -291,6 +306,20 @@ class PicklistProvider with ChangeNotifier {
     }
   }
 
+  /// Helper method to update location pick count without notifying listeners
+  /// Used for batch operations to prevent multiple UI rebuilds
+  void _updateLocationPickCountSilent(String locationId, int count) {
+    final locationIndex = _locations.indexWhere((loc) => loc.id == locationId);
+    if (locationIndex != -1) {
+      _locations[locationIndex] = PickLocation(
+        id: _locations[locationIndex].id,
+        name: _locations[locationIndex].name,
+        totalPicks: count,
+      );
+      // Note: No notifyListeners() call here - caller is responsible for notification
+    }
+  }
+
   /// Refreshes all location pick counts from API
   Future<void> refreshLocationCounts() async {
     _setLoading(true);
@@ -345,12 +374,17 @@ class PicklistProvider with ChangeNotifier {
 
       // Force refresh picks for all locations to ensure fresh data
       // This is critical for dashboard refresh to show updated completed/pending stats
+      // Use suppressNotifications to prevent multiple UI rebuilds during batch loading
       for (final location in _locations) {
         if (location.totalPicks > 0) {
           try {
             // IMPORTANT: Use forceRefresh: true to bypass cache and get fresh data
-            // This ensures dashboard stats (completed/pending picks) are accurate
-            await loadPicksForLocation(location.id, forceRefresh: true);
+            // Use suppressNotifications: true to prevent setState() during build exceptions
+            await loadPicksForLocation(
+              location.id,
+              forceRefresh: true,
+              suppressNotifications: true
+            );
           } catch (e) {
             // Continue with other locations even if one fails
             // This prevents one failed location from blocking the entire refresh
@@ -358,6 +392,7 @@ class PicklistProvider with ChangeNotifier {
         }
       }
 
+      // Single notifyListeners() call at the end to trigger UI rebuild once
       notifyListeners();
     } on AuthenticationException {
       // Re-throw authentication exceptions so they can be handled by the UI

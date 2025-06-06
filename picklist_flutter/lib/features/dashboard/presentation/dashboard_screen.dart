@@ -117,15 +117,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       // Get the picklist provider and refresh all data
       final picklistProvider = context.read<PicklistProvider>();
 
-      // Debug: Print current stats before refresh
-      print('Dashboard Refresh - Before: Total=${picklistProvider.getTotalPicks()}, Completed=${picklistProvider.getCompletedPicks()}');
-
       // Refresh all picks data and location counts
       // This will update the dashboard with latest information including completed/pending stats
       await picklistProvider.loadAllPicksAfterLogin();
-
-      // Debug: Print stats after refresh
-      print('Dashboard Refresh - After: Total=${picklistProvider.getTotalPicks()}, Completed=${picklistProvider.getCompletedPicks()}');
 
       // Show success message to user
       if (mounted) {
