@@ -17,10 +17,10 @@ class PickStatsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get pick counts for the location
     final totalPicks = provider.getTotalPicksForLocation(locationId);
     final remainingPicks = provider.getRemainingPicksForLocation(locationId);
     final completedPicks = totalPicks - remainingPicks;
-    final progress = totalPicks > 0 ? completedPicks / totalPicks : 0.0;
 
     return Container(
       margin: AppSpacing.screenPadding,
@@ -39,82 +39,16 @@ class PickStatsHeader extends StatelessWidget {
           color: AppColors.primary.withValues(alpha: 0.2),
         ),
       ),
-      child: Column(
-        children: [
-          _buildProgressCircle(progress, completedPicks, totalPicks),
-          AppSpacing.verticalSpaceLG,
-          _buildStatsRow(completedPicks, remainingPicks, totalPicks),
-        ],
-      ),
+      child: _buildStatsRow(completedPicks, remainingPicks),
     );
   }
 
-  Widget _buildProgressCircle(double progress, int completed, int total) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 120,
-          height: 120,
-          child: Stack(
-            children: [
-              // Background circle
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CircularProgressIndicator(
-                  value: 1.0,
-                  strokeWidth: 8,
-                  backgroundColor: AppColors.border,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.border,
-                  ),
-                ),
-              ),
-              // Progress circle
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    progress == 1.0 ? AppColors.success : AppColors.primary,
-                  ),
-                ),
-              ),
-              // Center content
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${(progress * 100).toInt()}%',
-                      style: AppTypography.headlineLarge.copyWith(
-                        color: progress == 1.0 ? AppColors.success : AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Complete',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildStatsRow(int completed, int remaining, int total) {
+
+  Widget _buildStatsRow(int completed, int remaining) {
     return Row(
       children: [
+        // Completed picks section
         Expanded(
           child: _buildStatItem(
             'Completed',
@@ -123,30 +57,19 @@ class PickStatsHeader extends StatelessWidget {
             AppColors.success,
           ),
         ),
+        // Divider between stats
         Container(
           width: 1,
           height: 40,
           color: AppColors.border,
         ),
+        // Pending (remaining) picks section
         Expanded(
           child: _buildStatItem(
-            'Remaining',
+            'Pending',
             remaining.toString(),
             Icons.schedule,
             AppColors.warning,
-          ),
-        ),
-        Container(
-          width: 1,
-          height: 40,
-          color: AppColors.border,
-        ),
-        Expanded(
-          child: _buildStatItem(
-            'Total',
-            total.toString(),
-            Icons.inventory_2,
-            AppColors.primary,
           ),
         ),
       ],
