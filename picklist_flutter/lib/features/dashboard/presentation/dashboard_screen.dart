@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/auth_error_handler.dart';
 
 import '../../auth/state/auth_provider.dart';
 import '../../splash/presentation/splash_screen.dart';
@@ -52,12 +53,26 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// This ensures users can see pick counts for all locations right away
   /// instead of having to click on each location to see if there are picks
   Future<void> _loadPicksAfterLogin() async {
-    // Get the picklist provider and load all picks data
-    final picklistProvider = context.read<PicklistProvider>();
+    try {
+      // Get the picklist provider and load all picks data
+      final picklistProvider = context.read<PicklistProvider>();
 
-    // Load all picks data in the background
-    // This will update location counts and pre-load pick data
-    await picklistProvider.loadAllPicksAfterLogin();
+      // Load all picks data in the background
+      // This will update location counts and pre-load pick data
+      await picklistProvider.loadAllPicksAfterLogin();
+    } on AuthenticationException catch (authError) {
+      // Handle authentication error by redirecting to login
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+          showMessage: true,
+        );
+      }
+    } catch (e) {
+      // Handle other errors silently - the provider will show error messages
+      // We don't want to interrupt the dashboard loading for non-auth errors
+    }
   }
 
   @override

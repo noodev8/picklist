@@ -9,9 +9,9 @@ Contains API endpoints, server URLs, and other app-wide configuration settings
 
 class AppConfig {
   // API Configuration
-  // static const String baseUrl = 'http://192.168.1.182:3000';
+  static const String apiBaseUrl = 'http://192.168.1.182:3000'; // summer office
   // static const String apiBaseUrl = 'http://77.68.13.150:3007'; // Test Server
-  static const String apiBaseUrl = 'https://picklist.noodev8.com'; // Prod Server
+  //static const String apiBaseUrl = 'https://picklist.noodev8.com'; // Prod Server
 
   // App Settings
   static const String appName = 'Pick List';

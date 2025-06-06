@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/search_bar.dart';
+import '../../../core/utils/auth_error_handler.dart';
 import '../../../providers/picklist_provider.dart';
 import '../../../models/pick_item.dart';
 import 'widgets/pick_item_card.dart';
@@ -57,10 +58,22 @@ class _PicklistScreenState extends State<PicklistScreen>
     _animationController.forward();
   }
 
-  void _loadPicksForLocation() {
-    print('🔍 DEBUG PicklistScreen: Loading picks for location: ${widget.locationId}');
-    final provider = context.read<PicklistProvider>();
-    provider.loadPicksForLocation(widget.locationId, forceRefresh: true);
+  Future<void> _loadPicksForLocation() async {
+    try {
+      final provider = context.read<PicklistProvider>();
+      await provider.loadPicksForLocation(widget.locationId, forceRefresh: true);
+    } on AuthenticationException catch (authError) {
+      // Handle authentication error
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+          showMessage: true,
+        );
+      }
+    } catch (e) {
+      // Handle other errors silently - provider will show error messages
+    }
   }
 
   @override
@@ -126,58 +139,79 @@ class _PicklistScreenState extends State<PicklistScreen>
 
   // Enhanced method to handle item toggle with smooth animation
   void _togglePickStatusWithAnimation(String itemId) async {
-    final provider = context.read<PicklistProvider>();
+    try {
+      final provider = context.read<PicklistProvider>();
 
-    // Get the picks list and find the specific item
-    final picks = await provider.getPicksForLocation(widget.locationId);
-    final item = picks.firstWhere((item) => item.id == itemId);
+      // Get the picks list and find the specific item
+      final picks = await provider.getPicksForLocation(widget.locationId);
+      final item = picks.firstWhere((item) => item.id == itemId);
 
-    // Store the original status to determine what action is being performed
-    final wasPickedBefore = item.isPicked;
+      // Store the original status to determine what action is being performed
+      final wasPickedBefore = item.isPicked;
 
-    // Create animation controller for this specific item if it doesn't exist
-    if (!_itemAnimations.containsKey(itemId)) {
-      _itemAnimations[itemId] = AnimationController(
-        duration: const Duration(milliseconds: 600),
-        vsync: this,
-      );
-    }
+      // Create animation controller for this specific item if it doesn't exist
+      if (!_itemAnimations.containsKey(itemId)) {
+        _itemAnimations[itemId] = AnimationController(
+          duration: const Duration(milliseconds: 600),
+          vsync: this,
+        );
+      }
 
-    final animationController = _itemAnimations[itemId]!;
+      final animationController = _itemAnimations[itemId]!;
 
-    // Add item to animation tracking
-    setState(() {
-      _itemsBeingAnimated.add(itemId);
-    });
-
-    // If item is being picked (not unpicked), play success animation
-    if (!wasPickedBefore) {
-      // Start the pick animation (scale + fade effect)
-      animationController.forward();
-
-      // Wait for animation to reach halfway point before toggling status
-      await Future.delayed(const Duration(milliseconds: 200));
-    }
-
-    // Toggle the status in the provider
-    provider.togglePickStatus(widget.locationId, itemId);
-
-    // If filtering by pending only and item was just picked, wait for animation to complete
-    if (_statusFilter == false && !wasPickedBefore) {
-      // Item was just picked, wait for full animation before allowing filter to hide it
-      await Future.delayed(const Duration(milliseconds: 600));
-    } else {
-      // For other cases, shorter delay
-      await Future.delayed(const Duration(milliseconds: 300));
-    }
-
-    // Clean up animation state if widget is still mounted
-    if (mounted) {
+      // Add item to animation tracking
       setState(() {
-        _itemsBeingAnimated.remove(itemId);
+        _itemsBeingAnimated.add(itemId);
       });
-      // Reset animation controller for reuse
-      animationController.reset();
+
+      // If item is being picked (not unpicked), play success animation
+      if (!wasPickedBefore) {
+        // Start the pick animation (scale + fade effect)
+        animationController.forward();
+
+        // Wait for animation to reach halfway point before toggling status
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+
+      // Toggle the status in the provider
+      await provider.togglePickStatus(widget.locationId, itemId);
+
+      // If filtering by pending only and item was just picked, wait for animation to complete
+      if (_statusFilter == false && !wasPickedBefore) {
+        // Item was just picked, wait for full animation before allowing filter to hide it
+        await Future.delayed(const Duration(milliseconds: 600));
+      } else {
+        // For other cases, shorter delay
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      // Clean up animation state if widget is still mounted
+      if (mounted) {
+        setState(() {
+          _itemsBeingAnimated.remove(itemId);
+        });
+        // Reset animation controller for reuse
+        animationController.reset();
+      }
+    } on AuthenticationException catch (authError) {
+      // Handle authentication error
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+          showMessage: true,
+        );
+      }
+    } catch (e) {
+      // Handle other errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating pick: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

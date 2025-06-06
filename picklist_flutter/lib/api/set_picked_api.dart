@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../features/auth/data/auth_service.dart';
+import '../core/utils/auth_error_handler.dart';
 
 class SetPickedApi {
   
@@ -67,7 +68,15 @@ class SetPickedApi {
       if (response.statusCode == 200) {
         // Parse the JSON response
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
+
+        // Check for authentication errors first
+        if (AuthErrorHandler.isAuthenticationError(jsonResponse)) {
+          throw AuthenticationException(
+            jsonResponse['message'] ?? 'Authentication failed',
+            jsonResponse
+          );
+        }
+
         // Check if the API returned success
         if (jsonResponse['return_code'] == 'SUCCESS') {
           return true;

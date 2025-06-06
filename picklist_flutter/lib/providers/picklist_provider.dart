@@ -3,6 +3,7 @@ import '../models/pick_item.dart';
 import '../models/pick_location.dart';
 import '../api/get_picks_api.dart';
 import '../api/set_picked_api.dart';
+import '../core/utils/auth_error_handler.dart';
 
 class PicklistProvider with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -73,6 +74,11 @@ class PicklistProvider with ChangeNotifier {
       // Update location total picks count
       _updateLocationPickCount(locationId, picks.length);
 
+    } on AuthenticationException {
+      // Re-throw authentication exceptions so they can be handled by the UI
+      _setError('Authentication failed');
+      _pickItems[locationId] = [];
+      rethrow;
     } catch (e) {
       _setError('Failed to load picks: ${e.toString()}');
       // Ensure empty list if error occurs
@@ -117,6 +123,10 @@ class PicklistProvider with ChangeNotifier {
           notifyListeners();
         }
       }
+    } on AuthenticationException {
+      // Re-throw authentication exceptions so they can be handled by the UI
+      _setError('Authentication failed');
+      rethrow;
     } catch (e) {
       _setError('Failed to update pick status: ${e.toString()}');
     } finally {
@@ -300,6 +310,10 @@ class PicklistProvider with ChangeNotifier {
       }
 
       notifyListeners();
+    } on AuthenticationException {
+      // Re-throw authentication exceptions so they can be handled by the UI
+      _setError('Authentication failed');
+      rethrow;
     } catch (e) {
       _setError('Failed to refresh location counts: ${e.toString()}');
     } finally {
@@ -342,6 +356,10 @@ class PicklistProvider with ChangeNotifier {
       }
 
       notifyListeners();
+    } on AuthenticationException {
+      // Re-throw authentication exceptions so they can be handled by the UI
+      _setError('Authentication failed');
+      rethrow;
     } catch (e) {
       _setError('Failed to load picks data: ${e.toString()}');
     } finally {

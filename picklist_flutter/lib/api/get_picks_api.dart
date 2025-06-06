@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/pick_item.dart';
 import '../features/auth/data/auth_service.dart';
+import '../core/utils/auth_error_handler.dart';
 
 class GetPicksApi {
   
@@ -20,6 +21,7 @@ class GetPicksApi {
   ///
   /// [locationFilter] - Optional filter to get picks for specific location
   /// Returns a list of PickItem objects or throws an exception on error
+  /// Throws AuthenticationException if authentication fails
   static Future<List<PickItem>> getAllPicks({String? locationFilter}) async {
     try {
       // Prepare request body
@@ -44,6 +46,14 @@ class GetPicksApi {
       if (response.statusCode == 200) {
         // Parse the JSON response
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        // Check for authentication errors first
+        if (AuthErrorHandler.isAuthenticationError(jsonResponse)) {
+          throw AuthenticationException(
+            jsonResponse['message'] ?? 'Authentication failed',
+            jsonResponse
+          );
+        }
 
         // Check if the API returned success
         if (jsonResponse['return_code'] == 'SUCCESS') {

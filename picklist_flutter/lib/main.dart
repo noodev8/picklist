@@ -4,6 +4,7 @@ import 'features/splash/presentation/splash_screen.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'providers/picklist_provider.dart';
 import 'theme/app_theme.dart';
+import 'core/services/api_service_wrapper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ class PicklistApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
         home: const SplashScreen(),
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
       ),
     );

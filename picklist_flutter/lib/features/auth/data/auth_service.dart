@@ -208,4 +208,29 @@ class AuthService {
       };
     }
   }
+
+  /// Check if API response indicates authentication failure
+  /// Returns true if response contains FORBIDDEN or UNAUTHORIZED return codes
+  static bool isAuthenticationError(Map<String, dynamic> response) {
+    final returnCode = response['return_code'];
+    return returnCode == 'FORBIDDEN' || returnCode == 'UNAUTHORIZED';
+  }
+
+  /// Handle authentication failure by clearing stored credentials
+  /// This method should be called when API returns FORBIDDEN/UNAUTHORIZED
+  static Future<void> handleAuthenticationFailure() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Clear all authentication data
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userDataKey);
+      await prefs.remove(_isLoggedInKey);
+      await prefs.remove(_lastLoginKey);
+
+    } catch (e) {
+      // Log error but don't throw - we want to continue with logout process
+      print('Error clearing authentication data: $e');
+    }
+  }
 }

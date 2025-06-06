@@ -75,7 +75,6 @@ router.post('/', authenticateToken, async (req, res) => {
             FROM localstock l
             LEFT JOIN skusummary s ON l.groupid = s.groupid
             WHERE l.ordernum != '#FREE' 
-            AND l.qty = 1
             AND (l.deleted IS NULL OR l.deleted = 0)
         `;
         
