@@ -343,14 +343,17 @@ class PicklistProvider with ChangeNotifier {
         );
       }
 
-      // Optionally pre-load picks for locations with items
-      // This makes subsequent navigation faster
+      // Force refresh picks for all locations to ensure fresh data
+      // This is critical for dashboard refresh to show updated completed/pending stats
       for (final location in _locations) {
         if (location.totalPicks > 0) {
           try {
-            await loadPicksForLocation(location.id);
+            // IMPORTANT: Use forceRefresh: true to bypass cache and get fresh data
+            // This ensures dashboard stats (completed/pending picks) are accurate
+            await loadPicksForLocation(location.id, forceRefresh: true);
           } catch (e) {
             // Continue with other locations even if one fails
+            // This prevents one failed location from blocking the entire refresh
           }
         }
       }
