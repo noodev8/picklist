@@ -232,6 +232,44 @@ class _PicklistScreenState extends State<PicklistScreen>
     if (_statusFilter == null) return null;
     return _statusFilter! ? 'Picked Only' : 'Pending Only';
   }
+
+  /// Refresh picks data for the current location
+  /// This method is called when user pulls down to refresh
+  Future<void> _refreshPicklist() async {
+    try {
+      // Get the picklist provider and refresh picks for this location
+      final picklistProvider = context.read<PicklistProvider>();
+
+      // Force refresh picks for the current location
+      // This will reload all pick data from the server
+      await picklistProvider.loadPicksForLocation(
+        widget.locationId,
+        forceRefresh: true
+      );
+
+    } on AuthenticationException catch (authError) {
+      // Handle authentication error by redirecting to login
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+          showMessage: true,
+        );
+      }
+    } catch (e) {
+      // Show error message for other types of errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh picks: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -239,18 +277,22 @@ class _PicklistScreenState extends State<PicklistScreen>
         builder: (context, provider, _) {
           final items = _getFilteredItems(provider);
 
-          return CustomScrollView(
-            slivers: [
-              _buildAppBar(provider),
-              SliverToBoxAdapter(
-                child: PickStatsHeader(
-                  locationId: widget.locationId,
-                  provider: provider,
+          return RefreshIndicator(
+            // Add pull-to-refresh functionality to picklist
+            onRefresh: _refreshPicklist,
+            child: CustomScrollView(
+              slivers: [
+                _buildAppBar(provider),
+                SliverToBoxAdapter(
+                  child: PickStatsHeader(
+                    locationId: widget.locationId,
+                    provider: provider,
+                  ),
                 ),
-              ),
-              _buildFilterSection(),
-              _buildRackGroupedPickList(items, provider),
-            ],
+                _buildFilterSection(),
+                _buildRackGroupedPickList(items, provider),
+              ],
+            ),
           );
         },
       ),

@@ -110,25 +110,63 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  /// Refresh all dashboard data by reloading picks and location counts
+  /// This method is called when user pulls down to refresh
+  Future<void> _refreshDashboard() async {
+    try {
+      // Get the picklist provider and refresh all data
+      final picklistProvider = context.read<PicklistProvider>();
+
+      // Refresh all picks data and location counts
+      // This will update the dashboard with latest information
+      await picklistProvider.loadAllPicksAfterLogin();
+
+    } on AuthenticationException catch (authError) {
+      // Handle authentication error by redirecting to login
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+          showMessage: true,
+        );
+      }
+    } catch (e) {
+      // Show error message for other types of errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            SliverPadding(
-              padding: AppSpacing.screenPadding,
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildStatsSection(),
-                  AppSpacing.verticalSpaceLG,
-                  _buildLocationsSection(),
-                ]),
+        child: RefreshIndicator(
+          // Add pull-to-refresh functionality to dashboard
+          onRefresh: _refreshDashboard,
+          child: CustomScrollView(
+            slivers: [
+              _buildAppBar(),
+              SliverPadding(
+                padding: AppSpacing.screenPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildStatsSection(),
+                    AppSpacing.verticalSpaceLG,
+                    _buildLocationsSection(),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -137,8 +175,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildAppBar() {
     return SliverAppBar(
       expandedHeight: 120,
-      floating: false,
-      pinned: true,
+      floating: true,  // Changed from false to true to allow pull-to-refresh
+      pinned: false,   // Changed from true to false to allow pull-to-refresh
+      snap: true,      // Added snap behavior for better UX
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
