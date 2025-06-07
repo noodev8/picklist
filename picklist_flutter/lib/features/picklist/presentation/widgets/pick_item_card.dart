@@ -90,12 +90,13 @@ class PickItemCard extends StatelessWidget {
                 item.productCode,
                 style: AppTypography.titleLarge.copyWith(
                   decoration: item.isPicked ? TextDecoration.lineThrough : null,
-                  color: item.isPicked 
-                      ? AppColors.textSecondary 
+                  color: item.isPicked
+                      ? AppColors.textSecondary
                       : AppColors.textPrimary,
                 ),
               ),
             ),
+
             StatusChip(
               status: item.isPicked ? PickStatus.picked : PickStatus.pending,
               size: ChipSize.small,

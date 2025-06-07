@@ -9,7 +9,7 @@ Contains API endpoints, server URLs, and other app-wide configuration settings
 
 class AppConfig {
   // API Configuration
-  //atic const String apiBaseUrl = 'http://192.168.1.182:3000'; // summer office
+  //satic const String apiBaseUrl = 'http://192.168.1.182:3000'; // summer office
   static const String apiBaseUrl = 'http://192.168.1.173:3000'; // summer shrewsbury
   // static const String apiBaseUrl = 'http://77.68.13.150:3007'; // Test Server
   //static const String apiBaseUrl = 'https://picklist.noodev8.com'; // Prod Server

@@ -13,14 +13,15 @@ import 'widgets/filter_bottom_sheet.dart';
 import 'widgets/simple_rack_header.dart';
 
 /// Enhanced picklist screen with search, filtering, and better UX
+/// Can show picks for a specific location or all picks when locationId is null
 class PicklistScreen extends StatefulWidget {
   const PicklistScreen({
     super.key,
-    required this.locationId,
+    this.locationId, // Made optional - null means show all picks
     required this.locationName,
   });
 
-  final String locationId;
+  final String? locationId; // Nullable to support showing all picks
   final String locationName;
 
   @override
@@ -61,7 +62,13 @@ class _PicklistScreenState extends State<PicklistScreen>
   Future<void> _loadPicksForLocation() async {
     try {
       final provider = context.read<PicklistProvider>();
-      await provider.loadPicksForLocation(widget.locationId, forceRefresh: true);
+
+      // If locationId is null, we're showing all picks, so load all picks data
+      if (widget.locationId == null) {
+        await provider.loadAllPicksAfterLogin();
+      } else {
+        await provider.loadPicksForLocation(widget.locationId!, forceRefresh: true);
+      }
     } on AuthenticationException catch (authError) {
       // Handle authentication error
       if (mounted) {
@@ -89,8 +96,13 @@ class _PicklistScreenState extends State<PicklistScreen>
 
   void _markAllAsPicked() {
     final provider = context.read<PicklistProvider>();
-    provider.markAllAsPicked(widget.locationId);
-    
+
+    if (widget.locationId != null) {
+      provider.markAllAsPicked(widget.locationId!);
+    } else {
+      provider.markAllAsPickedGlobally();
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('All items marked as picked'),
@@ -99,10 +111,16 @@ class _PicklistScreenState extends State<PicklistScreen>
       ),
     );
   }
+
   void _markAllAsUnpicked() {
     final provider = context.read<PicklistProvider>();
-    provider.markAllAsUnpicked(widget.locationId);
-    
+
+    if (widget.locationId != null) {
+      provider.markAllAsUnpicked(widget.locationId!);
+    } else {
+      provider.markAllAsUnpickedGlobally();
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('All items marked as unpicked'),
@@ -143,7 +161,12 @@ class _PicklistScreenState extends State<PicklistScreen>
       final provider = context.read<PicklistProvider>();
 
       // Get the picks list and find the specific item
-      final picks = await provider.getPicksForLocation(widget.locationId);
+      final List<PickItem> picks;
+      if (widget.locationId != null) {
+        picks = await provider.getPicksForLocation(widget.locationId!);
+      } else {
+        picks = await provider.getAllPicks();
+      }
       final item = picks.firstWhere((item) => item.id == itemId);
 
       // Store the original status to determine what action is being performed
@@ -174,7 +197,11 @@ class _PicklistScreenState extends State<PicklistScreen>
       }
 
       // Toggle the status in the provider
-      await provider.togglePickStatus(widget.locationId, itemId);
+      if (widget.locationId != null) {
+        await provider.togglePickStatus(widget.locationId!, itemId);
+      } else {
+        await provider.togglePickStatusGlobally(itemId);
+      }
 
       // If filtering by pending only and item was just picked, wait for animation to complete
       if (_statusFilter == false && !wasPickedBefore) {
@@ -233,19 +260,24 @@ class _PicklistScreenState extends State<PicklistScreen>
     return _statusFilter! ? 'Picked Only' : 'Pending Only';
   }
 
-  /// Refresh picks data for the current location
+  /// Refresh picks data for the current location or all locations
   /// This method is called when user pulls down to refresh
   Future<void> _refreshPicklist() async {
     try {
-      // Get the picklist provider and refresh picks for this location
+      // Get the picklist provider and refresh picks
       final picklistProvider = context.read<PicklistProvider>();
 
-      // Force refresh picks for the current location
-      // This will reload all pick data from the server
-      await picklistProvider.loadPicksForLocation(
-        widget.locationId,
-        forceRefresh: true
-      );
+      if (widget.locationId != null) {
+        // Force refresh picks for the current location
+        // This will reload all pick data from the server
+        await picklistProvider.loadPicksForLocation(
+          widget.locationId!,
+          forceRefresh: true
+        );
+      } else {
+        // Refresh all picks data when showing all locations
+        await picklistProvider.loadAllPicksAfterLogin();
+      }
 
     } on AuthenticationException catch (authError) {
       // Handle authentication error by redirecting to login
@@ -300,7 +332,12 @@ class _PicklistScreenState extends State<PicklistScreen>
   }
 
   Widget _buildAppBar(PicklistProvider provider) {
-    final remainingPicks = provider.getRemainingPicksForLocation(widget.locationId);
+    final int remainingPicks;
+    if (widget.locationId != null) {
+      remainingPicks = provider.getRemainingPicksForLocation(widget.locationId!);
+    } else {
+      remainingPicks = provider.getRemainingPicksGlobally();
+    }
     
     return SliverAppBar(
       expandedHeight: 120,
@@ -491,6 +528,7 @@ class _PicklistScreenState extends State<PicklistScreen>
           rackLocation: rackLocation,
           itemCount: rackItems.length,
           pickedCount: pickedCount,
+          showBuildingInfo: widget.locationId == null, // Show building info when viewing all locations
         ),
       );
 

@@ -14,11 +14,13 @@ class SimpleRackHeader extends StatelessWidget {
     required this.rackLocation,
     required this.itemCount,
     required this.pickedCount,
+    this.showBuildingInfo = false, // Show building info when viewing all locations
   });
 
   final String rackLocation;
   final int itemCount;
   final int pickedCount;
+  final bool showBuildingInfo; // Whether to show building/location information
 
   @override
   Widget build(BuildContext context) {
@@ -67,14 +69,14 @@ class SimpleRackHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  displayName,
+                  showBuildingInfo ? rackLocation : displayName,
                   style: AppTypography.titleMedium.copyWith(
                     color: isCompleted ? AppColors.success : AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  isCompleted 
+                  isCompleted
                       ? 'All $itemCount items picked'
                       : '$remainingCount of $itemCount remaining',
                   style: AppTypography.bodySmall.copyWith(

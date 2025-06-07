@@ -116,6 +116,17 @@ class PicklistProvider with ChangeNotifier {
     return items;
   }
 
+  /// Gets all picks across all locations
+  Future<List<PickItem>> getAllPicks() async {
+    final allItems = <PickItem>[];
+    for (final items in _pickItems.values) {
+      allItems.addAll(items);
+    }
+    // Sort items by rack location for better picker workflow
+    allItems.sort((a, b) => a.location.compareTo(b.location));
+    return allItems;
+  }
+
   /// Toggles the picked status of an item using the API
   Future<void> togglePickStatus(String locationId, String pickId) async {
     _setLoading(true);
@@ -137,6 +148,48 @@ class PicklistProvider with ChangeNotifier {
 
           notifyListeners();
         }
+      }
+    } on AuthenticationException {
+      // Re-throw authentication exceptions so they can be handled by the UI
+      _setError('Authentication failed');
+      rethrow;
+    } catch (e) {
+      _setError('Failed to update pick status: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Toggles the picked status of an item by searching across all locations
+  /// Used when showing all picks and we don't know which location the item belongs to
+  Future<void> togglePickStatusGlobally(String pickId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      // Find the item across all locations
+      PickItem? foundItem;
+      String? foundLocationId;
+
+      for (final entry in _pickItems.entries) {
+        final locationId = entry.key;
+        final items = entry.value;
+        final itemIndex = items.indexWhere((item) => item.id == pickId);
+        if (itemIndex != -1) {
+          foundItem = items[itemIndex];
+          foundLocationId = locationId;
+          break;
+        }
+      }
+
+      if (foundItem != null && foundLocationId != null) {
+        // Call API to update status
+        await SetPickedApi.togglePickedStatus(pickId, foundItem.isPicked);
+
+        // Update local cache
+        foundItem.isPicked = !foundItem.isPicked;
+
+        notifyListeners();
       }
     } on AuthenticationException {
       // Re-throw authentication exceptions so they can be handled by the UI
@@ -272,6 +325,69 @@ class PicklistProvider with ChangeNotifier {
         item.isPicked = false;
       }
       notifyListeners();
+    }
+  }
+
+  /// Mark all items as picked across all locations
+  void markAllAsPickedGlobally() {
+    for (final items in _pickItems.values) {
+      for (final item in items) {
+        item.isPicked = true;
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Mark all items as unpicked across all locations
+  void markAllAsUnpickedGlobally() {
+    for (final items in _pickItems.values) {
+      for (final item in items) {
+        item.isPicked = false;
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Get remaining picks count across all locations
+  int getRemainingPicksGlobally() {
+    int remaining = 0;
+    for (final items in _pickItems.values) {
+      remaining += items.where((item) => !item.isPicked).length;
+    }
+    return remaining;
+  }
+
+  /// Extract building name from rack location string
+  /// Examples: 'C3-Front-Rack-01' -> 'C3-Front', 'C1-Rack-01' -> 'C1'
+  String getBuildingNameFromLocation(String rackLocation) {
+    // Handle different location formats
+    if (rackLocation.startsWith('C3-Front')) return 'C3-Front';
+    if (rackLocation.startsWith('C3-Back')) return 'C3-Back';
+    if (rackLocation.startsWith('C3-Crocs')) return 'C3-Crocs';
+    if (rackLocation.startsWith('C3-Shop')) return 'C3-Shop';
+    if (rackLocation.startsWith('C1')) return 'C1';
+
+    // Fallback: try to extract building from location string
+    final parts = rackLocation.split('-');
+    if (parts.length >= 2) {
+      return '${parts[0]}-${parts[1]}';
+    } else if (parts.isNotEmpty) {
+      return parts[0];
+    }
+
+    return 'Unknown';
+  }
+
+  /// Get location ID from building name
+  /// Used for color coding and identification
+  String getLocationIdFromBuildingName(String buildingName) {
+    switch (buildingName) {
+      case 'C3-Front': return 'c3f';
+      case 'C3-Back': return 'c3b';
+      case 'C3-Crocs': return 'c3c';
+      case 'C3-Shop': return 'c3s';
+      case 'C1': return 'c1';
+      default: return 'unknown';
     }
   }
 

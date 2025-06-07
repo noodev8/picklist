@@ -110,6 +110,19 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  /// Navigate to picklist screen showing all available picks regardless of location
+  /// This is called when user taps on the 'Pending Picks' card
+  void _navigateToAllPicks() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PicklistScreen(
+          locationId: null, // null means show all picks
+          locationName: 'All Locations',
+        ),
+      ),
+    );
+  }
+
   /// Refresh all dashboard data by reloading picks and location counts
   /// This method is called when user pulls down to refresh
   Future<void> _refreshDashboard() async {
@@ -246,6 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     value: pendingPicks.toString(),
                     icon: Icons.schedule,
                     color: AppColors.warning,
+                    onTap: _navigateToAllPicks, // Make pending picks card clickable
                   ),
                 ),
                 AppSpacing.horizontalSpaceMD,
