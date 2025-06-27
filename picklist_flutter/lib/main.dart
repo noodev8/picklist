@@ -25,7 +25,7 @@ class PicklistApp extends StatelessWidget {
         title: 'Picklist',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         home: const SplashScreen(),
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
