@@ -34,7 +34,6 @@ class PicklistProvider with ChangeNotifier {
     _locations = [
       PickLocation(id: 'c3f', name: 'C3-Front', totalPicks: 0),
       PickLocation(id: 'c3b', name: 'C3-Back', totalPicks: 0),
-      PickLocation(id: 'c3c', name: 'C3-Crocs', totalPicks: 0),
       PickLocation(id: 'c3s', name: 'C3-Shop', totalPicks: 0),
       PickLocation(id: 'c1', name: 'C1', totalPicks: 0),
     ];
@@ -241,7 +240,11 @@ class PicklistProvider with ChangeNotifier {
 
   /// Returns locations sorted with completed locations at the bottom
   List<PickLocation> getSortedLocations() {
-    final sortedLocations = List<PickLocation>.from(locations);
+    // Only show locations that actually have picks; hide empty ones
+    // (e.g. removed/retired areas with no stock to pick)
+    final sortedLocations = locations
+        .where((loc) => getTotalPicksForLocation(loc.id) > 0)
+        .toList();
 
     // Sort locations: incomplete first, completed last
     sortedLocations.sort((a, b) {

@@ -36,8 +36,7 @@ class AppConfig {
   // Maps UI location IDs to API filter strings
   static const Map<String, String> locationFilters = {
     'c3f': 'C3-Front',
-    'c3b': 'C3-Back', 
-    'c3c': 'C3-Crocs',
+    'c3b': 'C3-Back',
     'c3s': 'C3-Shop',
     'c1': 'C1',
   };
@@ -46,7 +45,6 @@ class AppConfig {
   static const Map<String, String> locationNames = {
     'c3f': 'C3-Front',
     'c3b': 'C3-Back',
-    'c3c': 'C3-Crocs', 
     'c3s': 'C3-Shop',
     'c1': 'C1',
   };

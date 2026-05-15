@@ -162,7 +162,7 @@ class AppTheme {
       );
 
   // Card Themes
-  static CardTheme get _cardTheme => CardTheme(
+  static CardThemeData get _cardTheme => CardThemeData(
         color: AppColors.surface,
         elevation: AppElevation.sm,
         shape: RoundedRectangleBorder(
@@ -171,7 +171,7 @@ class AppTheme {
         margin: AppSpacing.paddingVerticalSM,
       );
 
-  static CardTheme get _darkCardTheme => CardTheme(
+  static CardThemeData get _darkCardTheme => CardThemeData(
         color: AppColors.darkSurface,
         elevation: AppElevation.sm,
         shape: RoundedRectangleBorder(
