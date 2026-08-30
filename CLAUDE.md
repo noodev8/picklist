@@ -73,7 +73,13 @@ Consequences to preserve:
 - **Picking is optimistic.** `toggle()` flips the item locally, notifies, then calls the API, and rolls back with an error message on failure. `isInFlight(id)` guards against a double tap racing itself.
 - State is held per `PickMode`; `setMode()` drops the outgoing job's list so returning to it re-reads the server.
 
-**Product code parsing:** `PickItem` splits the server's `code` against its `groupid` to expose `size`, `styleRef`, `model` and `displayName` (`0745531-GIZEH-37` + `0745531-GIZEH` -> size `37`, style ref `0745531`, model `Gizeh`). The UI leads with size because that is what gets mispicked. If the code has no recognisable size the getter returns an empty string and the row shows an em dash - do not assume it is always populated.
+**Product code parsing:** `PickItem` splits the server's `code` against its `groupid` to expose `size`, `pickCode`, `model` and `displayName`. `code` is always `groupid` + `-` + size (verified: zero exceptions in `localstock`), so the split is safe - but if a size cannot be recognised the getter returns an empty string and the row shows an em dash, so do not assume it is populated.
+
+`pickCode` is the code the row leads with after the size, and it is **brand-dependent on purpose**:
+- Birkenstock -> the leading article number only (`0745531-GIZEH` -> `0745531`). They number every colourway separately, so it is unique and it is what staff read off the box.
+- Every other brand -> the whole code minus the size (`FLE030-IVES-NAVY-BLUE`, `14621-00`). Other suppliers reuse one article number across colourways - Lunar's `FLE030` covers ten different group ids, and Rieker/Remonte carry the colour in a numeric suffix - so shortening those points at several different shoes at once.
+
+Add a brand to `PickItem._articleNumberBrands` only after checking its article numbers are unique per `groupid`. `shortensCode` follows from that choice and tells the supporting line whether it still has to name the model, so `Ives Navy Blue` is not printed directly under `FLE030-IVES-NAVY-BLUE`.
 
 **Working list (do not "fix" this):** `PicklistScreen` never removes a line on its own. Picked rows stay in place, struck through with a green size chip, and tapping one again unpicks it. Only the explicit "Hide N picked" control sets lines aside (into `_setAside`), and a refresh clears that set. This is a direct response to picked items vanishing from a filtered list mid-aisle.
 

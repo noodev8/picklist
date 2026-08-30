@@ -77,10 +77,37 @@ class PickItem {
     return '';
   }
 
-  /// Style reference as printed on the box end, e.g. `0745531`.
-  String get styleRef {
-    final List<String> parts = groupId.split('-');
-    return parts.isEmpty ? groupId : parts.first;
+  /// Brands whose leading article number identifies the shoe on its own.
+  ///
+  /// Birkenstock number every colourway separately, so `0745531` is unique and
+  /// is what staff read off the box. Every other supplier reuses one article
+  /// number across colourways - Lunar's `FLE030` covers ten different group ids
+  /// and Rieker's `14621-00` carries its colour in a suffix - so shortening
+  /// their codes would point at several different shoes at once.
+  static const Set<String> _articleNumberBrands = <String>{'birkenstock'};
+
+  /// The code shown on the pick row: the whole code minus the size, shortened to
+  /// the article number only for the brands where that is unambiguous.
+  String get pickCode {
+    final String full = groupId.isNotEmpty ? groupId : _codeWithoutSize;
+    if (!_articleNumberBrands.contains(brand.trim().toLowerCase())) {
+      return full;
+    }
+    final List<String> parts = full.split('-');
+    return parts.length > 1 ? parts.first : full;
+  }
+
+  /// Whether [pickCode] left the model name out, and the supporting line below
+  /// it therefore still has to say what the shoe is called.
+  bool get shortensCode => pickCode != (groupId.isNotEmpty ? groupId : _codeWithoutSize);
+
+  /// The product code with the size taken off the end.
+  String get _codeWithoutSize {
+    final String suffix = size;
+    if (suffix.isNotEmpty && productCode.endsWith('-$suffix')) {
+      return productCode.substring(0, productCode.length - suffix.length - 1);
+    }
+    return productCode;
   }
 
   /// Model name in plain words, e.g. `GIZEH` -> `Gizeh`, `IVES-NAVY-BLUE` ->
@@ -91,8 +118,13 @@ class PickItem {
     return parts.skip(1).map(_titleCase).join(' ');
   }
 
-  /// What the row leads with: brand and model, without repeating either.
+  /// What the supporting line calls the shoe.
+  ///
+  /// It drops to the brand alone when [pickCode] already carries the model, so
+  /// the row does not print `Ives Navy Blue` directly under
+  /// `FLE030-IVES-NAVY-BLUE`.
   String get displayName {
+    if (!shortensCode) return brand;
     if (brand.isEmpty) return model;
     if (model.isEmpty) return brand;
     if (model.toLowerCase().startsWith(brand.toLowerCase())) return model;

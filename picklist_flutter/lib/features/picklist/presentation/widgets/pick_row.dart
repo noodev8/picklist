@@ -32,7 +32,7 @@ class PickRow extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Size ${item.size}, code ${item.styleRef}, '
+      label: 'Size ${item.size}, code ${item.pickCode}, '
           '${item.displayName}, bay ${item.location}',
       hint: picked ? 'Picked. Tap to put back' : 'Tap to pick',
       child: Material(
@@ -80,6 +80,7 @@ class PickRow extends StatelessWidget {
   }
 
   Widget _details(bool picked) {
+    final String code = item.pickCode.isEmpty ? item.productCode : item.pickCode;
     final List<String> facts = <String>[
       item.displayName,
       if (item.showsColourSeparately) item.colour,
@@ -91,8 +92,13 @@ class PickRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          item.styleRef.isEmpty ? item.productCode : item.styleRef,
+          code,
+          // Full supplier codes run to about twenty characters. They step down
+          // a size rather than ellipsing, because the tail of one of these is
+          // usually the colourway - the part that tells two otherwise identical
+          // rows apart.
           style: AppTypography.itemCode.copyWith(
+            fontSize: code.length > 13 ? 20 : 25,
             color: picked ? AppColors.chalkFaint : AppColors.chalk,
             decoration: picked ? TextDecoration.lineThrough : null,
             decorationColor: AppColors.chalkFaint,
