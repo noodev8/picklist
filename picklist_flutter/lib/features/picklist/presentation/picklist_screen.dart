@@ -94,41 +94,6 @@ class _PicklistScreenState extends State<PicklistScreen>
     super.dispose();
   }
 
-  void _markAllAsPicked() {
-    final provider = context.read<PicklistProvider>();
-
-    if (widget.locationId != null) {
-      provider.markAllAsPicked(widget.locationId!);
-    } else {
-      provider.markAllAsPickedGlobally();
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All items marked as picked'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _markAllAsUnpicked() {
-    final provider = context.read<PicklistProvider>();
-
-    if (widget.locationId != null) {
-      provider.markAllAsUnpicked(widget.locationId!);
-    } else {
-      provider.markAllAsUnpickedGlobally();
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All items marked as unpicked'),
-        backgroundColor: AppColors.warning,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
   // Helper method to get filtered items based on current filter state
   List<PickItem> _getFilteredItems(PicklistProvider provider) {
     return provider.getFilteredItems(
@@ -373,44 +338,30 @@ class _PicklistScreenState extends State<PicklistScreen>
         ),
       ),
       actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(
-            Icons.more_vert,
-            color: AppColors.textOnPrimary,
+        if (provider.isAmazonMode)
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.textOnPrimary.withValues(alpha: 0.2),
+                  borderRadius: AppRadius.radiusSM,
+                ),
+                child: Text(
+                  'AMAZON',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textOnPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
-          onSelected: (value) {
-            switch (value) {
-              case 'mark_all_picked':
-                _markAllAsPicked();
-                break;
-              case 'mark_all_unpicked':
-                _markAllAsUnpicked();
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'mark_all_picked',
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: AppColors.success),
-                  AppSpacing.horizontalSpaceSM,
-                  Text('Mark All Picked'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'mark_all_unpicked',
-              child: Row(
-                children: [
-                  Icon(Icons.radio_button_unchecked, color: AppColors.warning),
-                  AppSpacing.horizontalSpaceSM,
-                  Text('Mark All Unpicked'),
-                ],
-              ),
-            ),
-          ],
-        ),      ],
+      ],
     );
   }
   Widget _buildFilterSection() {

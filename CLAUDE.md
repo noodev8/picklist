@@ -32,8 +32,23 @@ Every endpoint returns HTTP 200 (or sometimes 401/403/500) **and** a JSON body w
 
 Endpoints (`server.js` mounts one router per file in `routes/`):
 - `POST /login_pin` — PIN → JWT. Validates a 4-digit PIN against the `pickpin` table, issues a JWT valid **90 days** (`issuer: picklist-app`).
-- `POST /get_picks` — protected by `authenticateToken`. Returns picks from `localstock` LEFT JOIN `skusummary`, filtered to `ordernum != '#FREE'` and not soft-deleted, ordered by location/pickorder/code. Optional `location_filter` body field does a SQL `ILIKE %...%` on `location`.
-- `POST /set_picked` — protected; toggles picked status.
+- `POST /get_picks` — protected by `authenticateToken`. Returns picks from `localstock` LEFT JOIN `skusummary`, ordered by location/pickorder/code. Optional `location_filter` body field does a SQL `ILIKE %...%` on `location`. Optional `pick_type` selects the job (see **Two picking jobs** below); the response echoes it back.
+- `POST /set_picked` — toggles customer picked status (`qty` 1↔0).
+- `POST /set_amazon_picked` — protected; picks Amazon stock by *moving* it (see below).
+
+### Two picking jobs
+
+A picker does one of two disjoint jobs, chosen in the app's dashboard mode selector:
+
+| | `pick_type: "customer"` (default) | `pick_type: "amazon"` |
+|---|---|---|
+| `get_picks` filter | `ordernum != '#FREE'` | `allocated = 'amz' AND location != 'C3-Amazon'` |
+| Picked via | `POST /set_picked`, `qty` 1→0 | `POST /set_amazon_picked`, `location` → `C3-Amazon` |
+| Unpick | `qty` 0→1 | needs `original_location` in the body — the DB does not remember where the item came from |
+
+Both exclude soft-deleted rows. The lists never overlap: Amazon stock always has `ordernum = '#FREE'`, which the customer query excludes. Amazon picking never changes `allocated`; it stamps `assigned` with the picker's PIN from the JWT and writes `updated` as `TO_CHAR(NOW(), 'YYYYMMDD HH24:MI:SS')` to match every existing value in that column. (Note `set_picked` still writes `NOW()::text` there, which does *not* match — pre-existing behaviour, left alone.)
+
+`C3-Amazon` is defined in `picklist_server/constants.js` (`AMAZON_LOCATION`) and `AppConfig.amazonLocation`; these must stay in sync.
 
 Auth: `middleware/auth.js` reads `Bearer <token>` from the `Authorization` header. All protected routes go through `authenticateToken`, which attaches `req.user`.
 
@@ -48,6 +63,8 @@ Auth: `middleware/auth.js` reads `Bearer <token>` from the `Authorization` heade
 **Centralized auth-error handling:** API calls should flow through `core/services/api_service_wrapper.dart` (`ApiServiceWrapper`). It detects `UNAUTHORIZED`/`FORBIDDEN` responses, throws `AuthenticationException` (defined in `core/utils/auth_error_handler.dart`), and uses the global `navigatorKey` to redirect to login from anywhere. Providers rethrow `AuthenticationException` so the UI layer can react.
 
 **Data layer:** thin static API classes in `lib/api/` (`get_picks_api.dart`, `set_picked_api.dart`, `login_pin_api.dart`) wrap `http` calls and map JSON to models in `lib/models/`. `PicklistProvider` caches pick lists per location in memory and derives all dashboard stats (completion rate, remaining counts, location sorting) from that cache — there is no separate stats endpoint.
+
+**Pick modes:** `PickMode` (`lib/models/pick_mode.dart`) selects the job. `PicklistProvider` keys its item cache *and* its location counts per mode (`_pickItemsByMode`, `_locationsByMode`), exposing the active one through the private `_pickItems`/`_locations` getters, so the rest of the provider is mode-agnostic. `setMode()` drops the outgoing mode's cache and reloads. Amazon items keep showing their original `location` after being picked, which is what makes undo possible — but only until a refresh drops them from the server's list.
 
 **Location model:** the five warehouse locations (`c3f`, `c3b`, `c3c`, `c3s`, `c1`) are defined in two places that must stay in sync: `AppConfig.locationFilters`/`locationNames` (UI id → server filter string) and `PicklistProvider._initializeLocations()`. The server has no location concept beyond the `location` text column, so filtering is substring matching on strings like `C3-Front-Rack-01`.
 

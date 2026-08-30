@@ -1,3 +1,5 @@
+import 'pick_mode.dart';
+
 class PickItem {
 
   PickItem({
@@ -10,6 +12,8 @@ class PickItem {
     required this.brand,
     required this.supplier,
     required this.pickOrder,
+    this.colour = '',
+    this.allocated = '',
     this.imageUrl,
     this.isPicked = false,
   });
@@ -25,10 +29,20 @@ class PickItem {
   ///   "groupid": "GRP123",
   ///   "brand": "Nike",
   ///   "supplier": "MainSupplier",
+  ///   "colour": "Navy",
+  ///   "allocated": "amz",
   ///   "qty": 1,
   ///   "pickorder": 1
   /// }
-  factory PickItem.fromApiResponse(Map<String, dynamic> json) {
+  ///
+  /// [mode] determines how picked status is read. Customer picks carry it in qty
+  /// (0 = picked), but Amazon picks are taken off the list by being moved to the
+  /// staging area, so anything the server returns is by definition still to pick -
+  /// and their qty value is not a picked flag at all.
+  factory PickItem.fromApiResponse(
+    Map<String, dynamic> json, {
+    PickMode mode = PickMode.customer,
+  }) {
     return PickItem(
       id: json['id']?.toString() ?? '',
       productCode: json['code']?.toString() ?? '',
@@ -37,15 +51,20 @@ class PickItem {
       groupId: json['groupid']?.toString() ?? '',
       brand: json['brand']?.toString() ?? 'Unknown',
       supplier: json['supplier']?.toString() ?? 'Unknown',
+      colour: json['colour']?.toString() ?? '',
+      allocated: json['allocated']?.toString() ?? '',
       pickOrder: json['pickorder'] as int? ?? 0,
       // Create a title from brand and code for display
       title: '${json['brand'] ?? 'Unknown'} - ${json['code'] ?? 'Unknown'}',
       // qty = 1 means to be picked, qty = 0 means picked
-      isPicked: (json['qty'] ?? 1) == 0,
+      isPicked: mode == PickMode.amazon ? false : (json['qty'] ?? 1) == 0,
     );
   }
   final String id;
   final String productCode;
+
+  /// Where the item is picked from. For Amazon picks this stays put even after
+  /// picking, so it doubles as the location an unpick puts the item back at.
   final String location;
   final String title;
   final String? imageUrl;
@@ -53,6 +72,8 @@ class PickItem {
   final String groupId;
   final String brand;
   final String supplier;
+  final String colour;
+  final String allocated;
   final int pickOrder;
   bool isPicked;
 
@@ -66,6 +87,8 @@ class PickItem {
       'groupid': groupId,
       'brand': brand,
       'supplier': supplier,
+      'colour': colour,
+      'allocated': allocated,
       'qty': isPicked ? 0 : 1,
       'pickorder': pickOrder,
     };

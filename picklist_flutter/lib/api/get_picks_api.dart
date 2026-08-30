@@ -16,18 +16,25 @@ import '../config/app_config.dart';
 import '../core/utils/auth_error_handler.dart';
 import '../features/auth/data/auth_service.dart';
 import '../models/pick_item.dart';
+import '../models/pick_mode.dart';
 
 class GetPicksApi {
   
   /// Fetches all available picks from the server
   ///
   /// [locationFilter] - Optional filter to get picks for specific location
+  /// [mode] - Which picking job to list (customer orders or Amazon stock)
   /// Returns a list of PickItem objects or throws an exception on error
   /// Throws AuthenticationException if authentication fails
-  static Future<List<PickItem>> getAllPicks({String? locationFilter}) async {
+  static Future<List<PickItem>> getAllPicks({
+    String? locationFilter,
+    PickMode mode = PickMode.customer,
+  }) async {
     try {
       // Prepare request body
-      final Map<String, dynamic> requestBody = {};
+      final Map<String, dynamic> requestBody = {
+        'pick_type': mode.apiValue,
+      };
 
       // Add location filter if provided
       if (locationFilter != null && locationFilter.isNotEmpty) {
@@ -59,12 +66,25 @@ class GetPicksApi {
 
         // Check if the API returned success
         if (jsonResponse['return_code'] == 'SUCCESS') {
+          // Make sure we got the list we asked for. A server predating Amazon picks
+          // ignores pick_type and answers with customer picks regardless, which would
+          // otherwise show customer orders labelled as an Amazon job.
+          final String returnedType = jsonResponse['pick_type']?.toString() ?? '';
+          if (returnedType != mode.apiValue) {
+            throw Exception(
+              'Server does not support ${mode.displayName} picks. It needs updating.',
+            );
+          }
+
           // Extract picks array from response
           final List<dynamic> picksJson = jsonResponse['picks'] as List<dynamic>? ?? <dynamic>[];
 
           // Convert JSON picks to PickItem objects
           final List<PickItem> picks = picksJson.map((pickJson) {
-            return PickItem.fromApiResponse(pickJson as Map<String, dynamic>);
+            return PickItem.fromApiResponse(
+              pickJson as Map<String, dynamic>,
+              mode: mode,
+            );
           }).toList();
 
           return picks;
@@ -95,8 +115,12 @@ class GetPicksApi {
   /// Fetches picks for a specific location
   /// 
   /// [locationId] - The location ID (e.g., 'c3f', 'c3b', etc.)
+  /// [mode] - Which picking job to list (customer orders or Amazon stock)
   /// Returns a list of PickItem objects for that location
-  static Future<List<PickItem>> getPicksForLocation(String locationId) async {
+  static Future<List<PickItem>> getPicksForLocation(
+    String locationId, {
+    PickMode mode = PickMode.customer,
+  }) async {
     // Get the location filter string from config
     final String? locationFilter = AppConfig.getLocationFilter(locationId);
     
@@ -105,16 +129,19 @@ class GetPicksApi {
     }
     
     // Call the main API method with location filter
-    return await getAllPicks(locationFilter: locationFilter);
+    return await getAllPicks(locationFilter: locationFilter, mode: mode);
   }
   
   /// Gets a summary of pick counts by location
   /// 
+  /// [mode] - Which picking job to count (customer orders or Amazon stock)
   /// Returns a map with location IDs as keys and pick counts as values
-  static Future<Map<String, int>> getPickCountsByLocation() async {
+  static Future<Map<String, int>> getPickCountsByLocation({
+    PickMode mode = PickMode.customer,
+  }) async {
     try {
       // Get all picks without filter
-      final List<PickItem> allPicks = await getAllPicks();
+      final List<PickItem> allPicks = await getAllPicks(mode: mode);
       
       // Count picks by location
       final Map<String, int> locationCounts = {};

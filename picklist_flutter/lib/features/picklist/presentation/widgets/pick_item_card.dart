@@ -129,6 +129,22 @@ class PickItemCard extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
             ),
+            // Colour helps tell apart sizes of the same style sitting in one rack
+            if (item.colour.isNotEmpty) ...[
+              AppSpacing.horizontalSpaceSM,
+              const Icon(
+                Icons.palette_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              AppSpacing.horizontalSpaceXS,
+              Text(
+                item.colour,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
           ],
         ),
       ],

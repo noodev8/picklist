@@ -21,17 +21,23 @@ class AppConfig {
   // API Endpoints
   static const String getPicksEndpoint = '/get_picks';
   static const String setPickedEndpoint = '/set_picked';
+  static const String setAmazonPickedEndpoint = '/set_amazon_picked';
   static const String loginPinEndpoint = '/login_pin';
 
   // Full API URLs
   static String get getPicksUrl => '$apiBaseUrl$getPicksEndpoint';
   static String get setPickedUrl => '$apiBaseUrl$setPickedEndpoint';
+  static String get setAmazonPickedUrl => '$apiBaseUrl$setAmazonPickedEndpoint';
   static String get loginPinUrl => '$apiBaseUrl$loginPinEndpoint';
 
   // Request timeout settings
   static const Duration requestTimeout = Duration(seconds: 30);
   static const Duration connectionTimeout = Duration(seconds: 10);
   
+  // Staging area Amazon stock is moved to when picked.
+  // Must match AMAZON_LOCATION in picklist_server/constants.js.
+  static const String amazonLocation = 'C3-Amazon';
+
   // Location mapping for filtering API calls
   // Maps UI location IDs to API filter strings
   static const Map<String, String> locationFilters = {

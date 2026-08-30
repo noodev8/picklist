@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 
 import '../api/get_picks_api.dart';
+import '../api/set_amazon_picked_api.dart';
 import '../api/set_picked_api.dart';
 import '../core/utils/auth_error_handler.dart';
 import '../models/pick_item.dart';
 import '../models/pick_location.dart';
+import '../models/pick_mode.dart';
 
 class PicklistProvider with ChangeNotifier {
 
@@ -13,31 +15,61 @@ class PicklistProvider with ChangeNotifier {
   }
   bool _isAuthenticated = false;
 
-  // Cache for pick items by location
-  final Map<String, List<PickItem>> _pickItems = {};
+  // Which picking job is active. Customer and Amazon picks are separate jobs with
+  // separate lists and different pick mechanics, so every piece of cached state
+  // below is held per mode rather than shared.
+  PickMode _mode = PickMode.customer;
+
+  // Cache for pick items by location, per mode
+  final Map<PickMode, Map<String, List<PickItem>>> _pickItemsByMode = {
+    for (final PickMode mode in PickMode.values) mode: <String, List<PickItem>>{},
+  };
+
+  // Location data per mode - will be populated from API data
+  final Map<PickMode, List<PickLocation>> _locationsByMode = {};
 
   // Loading states
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Location data - will be populated from API data
-  List<PickLocation> _locations = [];
-
   // Getters
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  PickMode get mode => _mode;
+  bool get isAmazonMode => _mode == PickMode.amazon;
   List<PickLocation> get locations => _locations;
 
-  /// Initialize locations with default values
+  // Cached state for the active mode. Everything below reads through these so the
+  // rest of the provider does not have to care which mode is active.
+  Map<String, List<PickItem>> get _pickItems => _pickItemsByMode[_mode]!;
+  List<PickLocation> get _locations => _locationsByMode[_mode]!;
+
+  /// Initialize locations with default values, for every mode
   /// These will be updated with real counts from API
   void _initializeLocations() {
-    _locations = [
-      PickLocation(id: 'c3f', name: 'C3-Front', totalPicks: 0),
-      PickLocation(id: 'c3b', name: 'C3-Back', totalPicks: 0),
-      PickLocation(id: 'c3s', name: 'C3-Shop', totalPicks: 0),
-      PickLocation(id: 'c1', name: 'C1', totalPicks: 0),
-    ];
+    for (final PickMode mode in PickMode.values) {
+      _locationsByMode[mode] = [
+        PickLocation(id: 'c3f', name: 'C3-Front', totalPicks: 0),
+        PickLocation(id: 'c3b', name: 'C3-Back', totalPicks: 0),
+        PickLocation(id: 'c3s', name: 'C3-Shop', totalPicks: 0),
+        PickLocation(id: 'c1', name: 'C1', totalPicks: 0),
+      ];
+    }
+  }
+
+  /// Switches between the customer and Amazon picking jobs and loads that job's picks.
+  /// Cached data for the mode being left is dropped so returning to it re-reads the
+  /// server rather than showing counts that may be stale by then.
+  Future<void> setMode(PickMode mode) async {
+    if (_mode == mode) return;
+
+    _pickItemsByMode[_mode]!.clear();
+    _mode = mode;
+    _errorMessage = null;
+    notifyListeners();
+
+    await loadAllPicksAfterLogin();
   }
 
   // Authentication is now handled by AuthProvider
@@ -45,8 +77,11 @@ class PicklistProvider with ChangeNotifier {
 
   Future<void> logout() async {
     _isAuthenticated = false;
-    // Clear cached data on logout
-    _pickItems.clear();
+    // Clear cached data for every mode on logout
+    for (final Map<String, List<PickItem>> cache in _pickItemsByMode.values) {
+      cache.clear();
+    }
+    _mode = PickMode.customer;
     _initializeLocations();
     notifyListeners();
   }
@@ -70,7 +105,7 @@ class PicklistProvider with ChangeNotifier {
 
     try {
       // Get picks from API for this location
-      final List<PickItem> picks = await GetPicksApi.getPicksForLocation(locationId);
+      final List<PickItem> picks = await GetPicksApi.getPicksForLocation(locationId, mode: _mode);
 
       // Cache the picks
       _pickItems[locationId] = picks;
@@ -127,6 +162,18 @@ class PicklistProvider with ChangeNotifier {
     return allItems;
   }
 
+  /// Sends a pick/unpick for [item] to the endpoint matching the active mode.
+  /// Customer picks flip qty and are freely reversible. Amazon picks move the item
+  /// into the staging area, so an unpick has to tell the server the location to put
+  /// it back at - the item keeps showing its original location for exactly this reason.
+  Future<void> _sendPickToggle(PickItem item) async {
+    if (_mode == PickMode.amazon) {
+      await SetAmazonPickedApi.togglePickedStatus(item.id, item.isPicked, item.location);
+    } else {
+      await SetPickedApi.togglePickedStatus(item.id, item.isPicked);
+    }
+  }
+
   /// Toggles the picked status of an item using the API
   Future<void> togglePickStatus(String locationId, String pickId) async {
     _setLoading(true);
@@ -140,8 +187,8 @@ class PicklistProvider with ChangeNotifier {
         if (itemIndex != -1) {
           final item = items[itemIndex];
 
-          // Call API to update status
-          await SetPickedApi.togglePickedStatus(pickId, item.isPicked);
+          // Call the API that matches the active picking job
+          await _sendPickToggle(item);
 
           // Update local cache
           items[itemIndex].isPicked = !items[itemIndex].isPicked;
@@ -183,8 +230,8 @@ class PicklistProvider with ChangeNotifier {
       }
 
       if (foundItem != null && foundLocationId != null) {
-        // Call API to update status
-        await SetPickedApi.togglePickedStatus(pickId, foundItem.isPicked);
+        // Call the API that matches the active picking job
+        await _sendPickToggle(foundItem);
 
         // Update local cache
         foundItem.isPicked = !foundItem.isPicked;
@@ -312,46 +359,6 @@ class PicklistProvider with ChangeNotifier {
     return items;
   }
 
-  void markAllAsPicked(String locationId) {
-    final items = _pickItems[locationId];
-    if (items != null) {
-      for (final item in items) {
-        item.isPicked = true;
-      }
-      notifyListeners();
-    }
-  }
-
-  void markAllAsUnpicked(String locationId) {
-    final items = _pickItems[locationId];
-    if (items != null) {
-      for (final item in items) {
-        item.isPicked = false;
-      }
-      notifyListeners();
-    }
-  }
-
-  /// Mark all items as picked across all locations
-  void markAllAsPickedGlobally() {
-    for (final items in _pickItems.values) {
-      for (final item in items) {
-        item.isPicked = true;
-      }
-    }
-    notifyListeners();
-  }
-
-  /// Mark all items as unpicked across all locations
-  void markAllAsUnpickedGlobally() {
-    for (final items in _pickItems.values) {
-      for (final item in items) {
-        item.isPicked = false;
-      }
-    }
-    notifyListeners();
-  }
-
   /// Get remaining picks count across all locations
   int getRemainingPicksGlobally() {
     int remaining = 0;
@@ -446,7 +453,7 @@ class PicklistProvider with ChangeNotifier {
     _clearError();
 
     try {
-      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation();
+      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation(mode: _mode);
 
       for (int i = 0; i < _locations.length; i++) {
         final locationId = _locations[i].id;
@@ -479,7 +486,7 @@ class PicklistProvider with ChangeNotifier {
 
     try {
       // Get pick counts for all locations to update the dashboard
-      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation();
+      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation(mode: _mode);
 
       // Update location pick counts
       for (int i = 0; i < _locations.length; i++) {

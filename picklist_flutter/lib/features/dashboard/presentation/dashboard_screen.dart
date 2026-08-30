@@ -5,11 +5,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/auth_error_handler.dart';
+import '../../../models/pick_mode.dart';
 import '../../../providers/picklist_provider.dart';
 import '../../auth/state/auth_provider.dart';
 import '../../picklist/presentation/picklist_screen.dart';
 import '../../splash/presentation/splash_screen.dart';
 import 'widgets/location_card.dart';
+import 'widgets/pick_mode_selector.dart';
 import 'widgets/stats_card.dart';
 
 /// Modern dashboard screen with improved layout and statistics
@@ -120,6 +122,37 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  /// Dashboard title, so the active picking job is visible before scrolling anywhere
+  String _dashboardTitle(PickMode mode) {
+    return mode == PickMode.amazon ? 'Amazon Picks' : 'Customer Picks';
+  }
+
+  /// Switch between the customer and Amazon picking jobs.
+  /// The provider reloads that job's picks; auth failures are handled the same way
+  /// as the initial load.
+  Future<void> _switchMode(PickMode mode) async {
+    try {
+      await context.read<PicklistProvider>().setMode(mode);
+    } on AuthenticationException catch (authError) {
+      if (mounted) {
+        await AuthErrorHandler.handleWithNotification(
+          context,
+          authError.response,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to switch picking job: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   /// Refresh all dashboard data by reloading picks and location counts
   /// This method is called when user pulls down to refresh
   Future<void> _refreshDashboard() async {
@@ -180,6 +213,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 padding: AppSpacing.screenPadding,
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    _buildModeSection(),
+                    AppSpacing.verticalSpaceLG,
                     _buildStatsSection(),
                     AppSpacing.verticalSpaceLG,
                     _buildLocationsSection(),
@@ -200,10 +235,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       snap: true,      // Added snap behavior for better UX
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          'Picklist Dashboard',
-          style: AppTypography.headlineMedium.copyWith(
-            color: AppColors.textOnPrimary,
+        title: Consumer<PicklistProvider>(
+          builder: (context, provider, _) => Text(
+            _dashboardTitle(provider.mode),
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.textOnPrimary,
+            ),
           ),
         ),
         background: Container(
@@ -228,6 +265,18 @@ class _DashboardScreenState extends State<DashboardScreen>
           onPressed: _logout,
         ),
       ],
+    );
+  }
+
+  Widget _buildModeSection() {
+    return Consumer<PicklistProvider>(
+      builder: (context, provider, _) {
+        return PickModeSelector(
+          selectedMode: provider.mode,
+          enabled: !provider.isLoading,
+          onModeSelected: _switchMode,
+        );
+      },
     );
   }
 
