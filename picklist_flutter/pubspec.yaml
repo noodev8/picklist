@@ -60,6 +60,12 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/picklist_logo.png"
   remove_alpha_ios: true
+  # Android 8+ composites a separate foreground over a background and applies its own mask
+  # (circle, squircle, teardrop - launcher's choice). Without these two the legacy square icon
+  # gets letterboxed inside that mask. The foreground holds just the white artwork, sized to fit
+  # Android's safe circle, over the card colour as a flat background.
+  adaptive_icon_background: "#18353D"
+  adaptive_icon_foreground: "assets/picklist_logo_foreground.png"
 
 flutter:
   # The following line ensures that the Material Icons font is
