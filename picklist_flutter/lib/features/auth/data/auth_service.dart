@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/login_pin_api.dart';
 
@@ -230,7 +231,7 @@ class AuthService {
 
     } catch (e) {
       // Log error but don't throw - we want to continue with logout process
-      print('Error clearing authentication data: $e');
+      debugPrint('Error clearing authentication data: $e');
     }
   }
 }

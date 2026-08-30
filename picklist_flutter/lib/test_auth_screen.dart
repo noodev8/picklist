@@ -8,8 +8,9 @@ This is a temporary file for testing purposes only
 */
 
 import 'package:flutter/material.dart';
-import 'core/utils/auth_error_handler.dart';
+
 import 'api/get_picks_api.dart';
+import 'core/utils/auth_error_handler.dart';
 
 /// Test screen to verify authentication error handling
 class TestAuthScreen extends StatefulWidget {
@@ -44,7 +45,6 @@ class _TestAuthScreenState extends State<TestAuthScreen> {
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -69,7 +69,7 @@ class _TestAuthScreenState extends State<TestAuthScreen> {
     // Simulate an authentication error response
     final mockAuthErrorResponse = {
       'return_code': 'FORBIDDEN',
-      'message': 'Invalid or expired token'
+      'message': 'Invalid or expired token',
     };
 
     try {
@@ -82,7 +82,6 @@ class _TestAuthScreenState extends State<TestAuthScreen> {
         await AuthErrorHandler.handleWithNotification(
           context,
           mockAuthErrorResponse,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -107,13 +106,13 @@ class _TestAuthScreenState extends State<TestAuthScreen> {
         foregroundColor: Colors.white,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -144,7 +143,7 @@ class _TestAuthScreenState extends State<TestAuthScreen> {
             const SizedBox(height: 24),
             const Card(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
 
 /// Bottom sheet for filtering pick items
@@ -13,7 +14,7 @@ class FilterBottomSheet extends StatefulWidget {
   });
 
   final bool? currentStatusFilter;
-  final Function(bool? statusFilter) onFiltersApplied;
+  final void Function(bool? statusFilter) onFiltersApplied;
 
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
@@ -30,7 +31,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.only(
@@ -55,7 +56,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       margin: AppSpacing.paddingVerticalSM,
       width: 40,
       height: 4,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.textTertiary,
         borderRadius: AppRadius.radiusXS,
       ),

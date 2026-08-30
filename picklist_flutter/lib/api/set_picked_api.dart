@@ -9,10 +9,12 @@ Allows users to pick/unpick items by updating their status in the database
 
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+
 import '../config/app_config.dart';
-import '../features/auth/data/auth_service.dart';
 import '../core/utils/auth_error_handler.dart';
+import '../features/auth/data/auth_service.dart';
 
 class SetPickedApi {
   
@@ -67,13 +69,13 @@ class SetPickedApi {
       // Check if request was successful
       if (response.statusCode == 200) {
         // Parse the JSON response
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final Map<String, dynamic> jsonResponse = json.decode(response.body) as Map<String, dynamic>;
 
         // Check for authentication errors first
         if (AuthErrorHandler.isAuthenticationError(jsonResponse)) {
           throw AuthenticationException(
-            jsonResponse['message'] ?? 'Authentication failed',
-            jsonResponse
+            jsonResponse['message'] as String? ?? 'Authentication failed',
+            jsonResponse,
           );
         }
 
@@ -87,7 +89,7 @@ class SetPickedApi {
       } else if (response.statusCode == 400) {
         // Bad request - parse error message
         try {
-          final Map<String, dynamic> errorResponse = json.decode(response.body);
+          final Map<String, dynamic> errorResponse = json.decode(response.body) as Map<String, dynamic>;
           throw Exception('Validation Error: ${errorResponse['message'] ?? 'Invalid request'}');
         } catch (e) {
           throw Exception('Bad Request: ${response.reasonPhrase}');

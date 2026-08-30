@@ -64,7 +64,7 @@ class LocationListScreen extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
+                            MaterialPageRoute<void>(
                               builder: (_) => PickListScreen(location: location),
                             ),
                           );

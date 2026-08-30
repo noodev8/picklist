@@ -1,13 +1,13 @@
 class PickLocation {
-  final String id;
-  final String name;
-  final int totalPicks;
 
   PickLocation({
     required this.id,
     required this.name,
     required this.totalPicks,
   });
+  final String id;
+  final String name;
+  final int totalPicks;
 }
 
 // Dummy data for locations

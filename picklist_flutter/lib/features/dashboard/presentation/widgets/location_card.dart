@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../models/pick_location.dart';
 
 /// Enhanced location card with progress indicator and status
@@ -29,11 +30,7 @@ class LocationCard extends StatelessWidget {
     return Card(
       elevation: AppElevation.sm,
       child: InkWell(
-        onTap: () {
-          print('🔍 DEBUG LocationCard: Card tapped for location: ${location.name} (ID: ${location.id})');
-          print('🔍 DEBUG LocationCard: Remaining picks: $remainingPicks, Total picks: $totalPicks');
-          onTap();
-        },
+        onTap: onTap,
         borderRadius: AppRadius.radiusMD,
         child: Container(
           padding: AppSpacing.cardPadding,
@@ -99,7 +96,7 @@ class LocationCard extends StatelessWidget {
             ],
           ),
         ),
-        Icon(
+        const Icon(
           Icons.chevron_right,
           color: AppColors.textSecondary,
         ),
@@ -111,13 +108,13 @@ class LocationCard extends StatelessWidget {
     if (!hasPicks) {
       return Container(
         padding: AppSpacing.paddingMD,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.surfaceVariant,
           borderRadius: AppRadius.radiusSM,
         ),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.info_outline,
               size: 16,
               color: AppColors.textSecondary,

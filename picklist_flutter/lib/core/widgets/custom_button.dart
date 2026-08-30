@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 /// Custom button widget with consistent styling and behavior
 class CustomButton extends StatelessWidget {
@@ -62,7 +63,7 @@ class CustomButton extends StatelessWidget {
         foregroundColor: AppColors.textOnPrimary,
         padding: _getPadding(),
         minimumSize: _getMinimumSize(),
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.radiusMD,
         ),
         elevation: isEnabled ? AppElevation.sm : 0,
@@ -81,7 +82,7 @@ class CustomButton extends StatelessWidget {
         side: BorderSide(
           color: isEnabled ? AppColors.primary : AppColors.textTertiary,
         ),
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.radiusMD,
         ),
       ),

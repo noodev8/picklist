@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/custom_button.dart';
-import '../state/auth_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
+import '../state/auth_provider.dart';
 import 'widgets/pin_input_field.dart';
 
 /// Modern login screen with improved UX
@@ -37,20 +38,20 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-    ));
+      curve: const Interval(0, 0.6, curve: Curves.easeOut),
+    ),);
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-    ));
+      curve: const Interval(0.3, 1, curve: Curves.easeOut),
+    ),);
 
     _animationController.forward();
   }
@@ -74,13 +75,12 @@ class _LoginScreenState extends State<LoginScreen>
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
+        PageRouteBuilder<void>(
           pageBuilder: (context, animation, secondaryAnimation) =>
               const DashboardScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 300),
         ),
       );
     }
@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -122,14 +122,14 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       constraints: const BoxConstraints(maxWidth: 400),
       padding: AppSpacing.paddingXL,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.radiusXL,
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 255, 255, 255),
+            color: Color.fromARGB(255, 255, 255, 255),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),

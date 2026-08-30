@@ -9,10 +9,11 @@ Checks for valid JWT token and navigates to dashboard or login screen accordingl
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../auth/state/auth_provider.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../auth/state/auth_provider.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 
 /// Splash screen that handles automatic authentication and navigation
@@ -43,20 +44,20 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-    ));
+      curve: const Interval(0, 0.6, curve: Curves.easeOut),
+    ),);
 
     _scaleAnimation = Tween<double>(
       begin: 0.8,
-      end: 1.0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
-    ));
+    ),);
 
     _animationController.forward();
   }
@@ -64,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
   /// Check authentication status and navigate accordingly
   Future<void> _checkAuthentication() async {
     // Wait for animations to complete
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
 
     if (!mounted) return;
 
@@ -93,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToDashboard() {
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
+      PageRouteBuilder<void>(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const DashboardScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -106,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToLogin() {
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
+      PageRouteBuilder<void>(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -126,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -154,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -191,7 +192,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Text(
                   'Warehouse Management System',
                   style: AppTypography.bodyLarge.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ),
@@ -214,7 +215,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Text(
                   'Checking authentication...',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
               ),

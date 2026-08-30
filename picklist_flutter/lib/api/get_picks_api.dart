@@ -9,11 +9,13 @@ Fetches real pick data from the PostgreSQL database via the Node.js/Express serv
 
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+
 import '../config/app_config.dart';
-import '../models/pick_item.dart';
-import '../features/auth/data/auth_service.dart';
 import '../core/utils/auth_error_handler.dart';
+import '../features/auth/data/auth_service.dart';
+import '../models/pick_item.dart';
 
 class GetPicksApi {
   
@@ -45,24 +47,24 @@ class GetPicksApi {
       // Check if request was successful
       if (response.statusCode == 200) {
         // Parse the JSON response
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final Map<String, dynamic> jsonResponse = json.decode(response.body) as Map<String, dynamic>;
 
         // Check for authentication errors first
         if (AuthErrorHandler.isAuthenticationError(jsonResponse)) {
           throw AuthenticationException(
-            jsonResponse['message'] ?? 'Authentication failed',
-            jsonResponse
+            jsonResponse['message'] as String? ?? 'Authentication failed',
+            jsonResponse,
           );
         }
 
         // Check if the API returned success
         if (jsonResponse['return_code'] == 'SUCCESS') {
           // Extract picks array from response
-          final List<dynamic> picksJson = jsonResponse['picks'] ?? [];
+          final List<dynamic> picksJson = jsonResponse['picks'] as List<dynamic>? ?? <dynamic>[];
 
           // Convert JSON picks to PickItem objects
           final List<PickItem> picks = picksJson.map((pickJson) {
-            return PickItem.fromApiResponse(pickJson);
+            return PickItem.fromApiResponse(pickJson as Map<String, dynamic>);
           }).toList();
 
           return picks;
@@ -118,14 +120,14 @@ class GetPicksApi {
       final Map<String, int> locationCounts = {};
       
       // Initialize all locations with 0 counts
-      for (String locationId in AppConfig.locationFilters.keys) {
+      for (final String locationId in AppConfig.locationFilters.keys) {
         locationCounts[locationId] = 0;
       }
       
       // Count picks for each location
-      for (PickItem pick in allPicks) {
+      for (final PickItem pick in allPicks) {
         // Find which location this pick belongs to based on location string
-        for (String locationId in AppConfig.locationFilters.keys) {
+        for (final String locationId in AppConfig.locationFilters.keys) {
           final String? locationFilter = AppConfig.getLocationFilter(locationId);
           if (locationFilter != null && 
               pick.location.toLowerCase().contains(locationFilter.toLowerCase())) {
@@ -139,7 +141,7 @@ class GetPicksApi {
     } catch (e) {
       // Return empty counts on error
       final Map<String, int> emptyCounts = {};
-      for (String locationId in AppConfig.locationFilters.keys) {
+      for (final String locationId in AppConfig.locationFilters.keys) {
         emptyCounts[locationId] = 0;
       }
       return emptyCounts;

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 
 /// Custom PIN input field with single text box
 class PinInputField extends StatefulWidget {
@@ -78,7 +79,7 @@ class _PinInputFieldState extends State<PinInputField> {
             style: AppTypography.headlineLarge.copyWith(
               fontWeight: FontWeight.bold,
               color: widget.enabled ? AppColors.textPrimary : AppColors.textTertiary,
-              letterSpacing: 8.0,
+              letterSpacing: 8,
             ),
             keyboardType: TextInputType.number,
             obscureText: true,
@@ -90,7 +91,7 @@ class _PinInputFieldState extends State<PinInputField> {
               hintText: '••••',
               hintStyle: AppTypography.headlineLarge.copyWith(
                 color: AppColors.textTertiary,
-                letterSpacing: 8.0,
+                letterSpacing: 8,
               ),
             ),
             inputFormatters: [
@@ -131,13 +132,5 @@ class _PinInputFieldState extends State<PinInputField> {
         ],
       ),
     );
-  }
-
-  Color _getBorderColor() {
-    if (!widget.enabled) return Colors.transparent; // Changed to transparent
-    if (widget.errorText != null) return AppColors.error;
-    if (_focusNode.hasFocus) return AppColors.primary;
-    if (widget.controller.text.isNotEmpty) return AppColors.success;
-    return Colors.transparent; // Changed to transparent
   }
 }

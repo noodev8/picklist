@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/status_chip.dart';
 import '../../../../models/pick_item.dart';
 
@@ -116,7 +117,7 @@ class PickItemCard extends StatelessWidget {
         AppSpacing.verticalSpaceXS,
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.location_on,
               size: 14,
               color: AppColors.textSecondary,
@@ -149,16 +150,16 @@ class PickItemCard extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: item.imageUrl!,
             fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
+            placeholder: (context, url) => const ColoredBox(
               color: AppColors.surfaceVariant,
-              child: const Icon(
+              child: Icon(
                 Icons.image,
                 color: AppColors.textSecondary,
               ),
             ),
-            errorWidget: (context, url, error) => Container(
+            errorWidget: (context, url, error) => const ColoredBox(
               color: AppColors.surfaceVariant,
-              child: const Icon(
+              child: Icon(
                 Icons.broken_image,
                 color: AppColors.textSecondary,
               ),
@@ -170,7 +171,7 @@ class PickItemCard extends StatelessWidget {
   }
 
   void _showImageDialog(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -179,7 +180,7 @@ class PickItemCard extends StatelessWidget {
             maxWidth: MediaQuery.of(context).size.width * 0.9,
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.radiusLG,
           ),

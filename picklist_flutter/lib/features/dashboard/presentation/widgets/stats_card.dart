@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 
 /// Statistics card widget for displaying key metrics
 class StatsCard extends StatelessWidget {
@@ -61,7 +62,7 @@ class StatsCard extends StatelessWidget {
                     ),
                   ),
                   if (onTap != null)
-                    Icon(
+                    const Icon(
                       Icons.arrow_forward_ios,
                       size: 12,
                       color: AppColors.textTertiary,
@@ -143,7 +144,7 @@ class _AnimatedStatsCardState extends State<AnimatedStatsCard>
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOut,
-    ));
+    ),);
     _controller.forward();
   }
 
@@ -157,7 +158,7 @@ class _AnimatedStatsCardState extends State<AnimatedStatsCard>
       ).animate(CurvedAnimation(
         parent: _controller,
         curve: Curves.easeOut,
-      ));
+      ),);
       _controller.forward(from: 0);
     }
   }

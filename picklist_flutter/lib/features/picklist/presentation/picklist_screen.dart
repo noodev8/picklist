@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart' hide FilterChip;
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/search_bar.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/auth_error_handler.dart';
-import '../../../providers/picklist_provider.dart';
+import '../../../core/widgets/search_bar.dart';
 import '../../../models/pick_item.dart';
+import '../../../providers/picklist_provider.dart';
+import 'widgets/filter_bottom_sheet.dart';
 import 'widgets/pick_item_card.dart';
 import 'widgets/pick_stats_header.dart';
-import 'widgets/filter_bottom_sheet.dart';
 import 'widgets/simple_rack_header.dart';
 
 /// Enhanced picklist screen with search, filtering, and better UX
@@ -75,7 +76,6 @@ class _PicklistScreenState extends State<PicklistScreen>
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -104,7 +104,7 @@ class _PicklistScreenState extends State<PicklistScreen>
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('All items marked as picked'),
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
@@ -122,7 +122,7 @@ class _PicklistScreenState extends State<PicklistScreen>
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('All items marked as unpicked'),
         backgroundColor: AppColors.warning,
         behavior: SnackBarBehavior.floating,
@@ -134,13 +134,12 @@ class _PicklistScreenState extends State<PicklistScreen>
     return provider.getFilteredItems(
       locationId: widget.locationId,
       isPicked: _statusFilter,
-      searchQuery: null, // No search functionality
     );
   }
 
   // Method to show filter bottom sheet
   void _showFilterBottomSheet() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -156,7 +155,7 @@ class _PicklistScreenState extends State<PicklistScreen>
   }
 
   // Enhanced method to handle item toggle with smooth animation
-  void _togglePickStatusWithAnimation(String itemId) async {
+  Future<void> _togglePickStatusWithAnimation(String itemId) async {
     try {
       final provider = context.read<PicklistProvider>();
 
@@ -193,7 +192,7 @@ class _PicklistScreenState extends State<PicklistScreen>
         animationController.forward();
 
         // Wait for animation to reach halfway point before toggling status
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
       }
 
       // Toggle the status in the provider
@@ -206,10 +205,10 @@ class _PicklistScreenState extends State<PicklistScreen>
       // If filtering by pending only and item was just picked, wait for animation to complete
       if (_statusFilter == false && !wasPickedBefore) {
         // Item was just picked, wait for full animation before allowing filter to hide it
-        await Future.delayed(const Duration(milliseconds: 600));
+        await Future<void>.delayed(const Duration(milliseconds: 600));
       } else {
         // For other cases, shorter delay
-        await Future.delayed(const Duration(milliseconds: 300));
+        await Future<void>.delayed(const Duration(milliseconds: 300));
       }
 
       // Clean up animation state if widget is still mounted
@@ -226,7 +225,6 @@ class _PicklistScreenState extends State<PicklistScreen>
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -272,7 +270,7 @@ class _PicklistScreenState extends State<PicklistScreen>
         // This will reload all pick data from the server
         await picklistProvider.loadPicksForLocation(
           widget.locationId!,
-          forceRefresh: true
+          forceRefresh: true,
         );
       } else {
         // Refresh all picks data when showing all locations
@@ -285,7 +283,6 @@ class _PicklistScreenState extends State<PicklistScreen>
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -341,7 +338,6 @@ class _PicklistScreenState extends State<PicklistScreen>
     
     return SliverAppBar(
       expandedHeight: 120,
-      floating: false,
       pinned: true,
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
@@ -433,7 +429,7 @@ class _PicklistScreenState extends State<PicklistScreen>
                   style: AppTypography.titleLarge,
                 ),
                 // Filter button
-                Container(
+                DecoratedBox(
                   decoration: BoxDecoration(
                     color: _hasActiveFilters() 
                         ? AppColors.primary.withValues(alpha: 0.1)
@@ -539,8 +535,8 @@ class _PicklistScreenState extends State<PicklistScreen>
             animation: _animationController,
             builder: (context, child) {
               final animation = Tween<double>(
-                begin: 0.0,
-                end: 1.0,
+                begin: 0,
+                end: 1,
               ).animate(CurvedAnimation(
                 parent: _animationController,
                 curve: Interval(
@@ -548,7 +544,7 @@ class _PicklistScreenState extends State<PicklistScreen>
                   ((animationIndex * 0.05) + 0.2).clamp(0.0, 1.0),
                   curve: Curves.easeOut,
                 ),
-              ));
+              ),);
 
               return FadeTransition(
                 opacity: animation,
@@ -589,20 +585,20 @@ class _PicklistScreenState extends State<PicklistScreen>
     if (isBeingAnimated && animationController != null) {
       // Create success animation with scale and color effects
       final scaleAnimation = Tween<double>(
-        begin: 1.0,
+        begin: 1,
         end: 1.1,
       ).animate(CurvedAnimation(
         parent: animationController,
-        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
-      ));
+        curve: const Interval(0, 0.5, curve: Curves.elasticOut),
+      ),);
 
       final fadeAnimation = Tween<double>(
-        begin: 1.0,
+        begin: 1,
         end: 0.8,
       ).animate(CurvedAnimation(
         parent: animationController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-      ));
+        curve: const Interval(0.5, 1, curve: Curves.easeOut),
+      ),);
 
       return AnimatedBuilder(
         animation: animationController,
@@ -612,7 +608,7 @@ class _PicklistScreenState extends State<PicklistScreen>
             child: AnimatedOpacity(
               opacity: fadeAnimation.value,
               duration: const Duration(milliseconds: 100),
-              child: Container(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: AppRadius.radiusMD,
                   boxShadow: [

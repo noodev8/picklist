@@ -1,11 +1,16 @@
 import 'package:flutter/foundation.dart';
-import '../models/pick_item.dart';
-import '../models/pick_location.dart';
+
 import '../api/get_picks_api.dart';
 import '../api/set_picked_api.dart';
 import '../core/utils/auth_error_handler.dart';
+import '../models/pick_item.dart';
+import '../models/pick_location.dart';
 
 class PicklistProvider with ChangeNotifier {
+
+  PicklistProvider() {
+    _initializeLocations();
+  }
   bool _isAuthenticated = false;
 
   // Cache for pick items by location
@@ -23,10 +28,6 @@ class PicklistProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<PickLocation> get locations => _locations;
-
-  PicklistProvider() {
-    _initializeLocations();
-  }
 
   /// Initialize locations with default values
   /// These will be updated with real counts from API
@@ -234,7 +235,7 @@ class PicklistProvider with ChangeNotifier {
 
   double getCompletionRate() {
     final total = getTotalPicksCount();
-    if (total == 0) return 0.0;
+    if (total == 0) return 0;
     return getCompletedPicks() / total;
   }
 
@@ -502,7 +503,7 @@ class PicklistProvider with ChangeNotifier {
             await loadPicksForLocation(
               location.id,
               forceRefresh: true,
-              suppressNotifications: true
+              suppressNotifications: true,
             );
           } catch (e) {
             // Continue with other locations even if one fails

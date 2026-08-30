@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../core/theme/app_colors.dart';
-import '../core/theme/app_typography.dart';
 import '../core/theme/app_spacing.dart';
+import '../core/theme/app_typography.dart';
 
 /// Main theme configuration for the picklist app
 /// Provides both light and dark themes with consistent styling
@@ -52,13 +53,9 @@ class AppTheme {
   // Color Schemes
   static const ColorScheme _lightColorScheme = ColorScheme.light(
     primary: AppColors.primary,
-    onPrimary: AppColors.textOnPrimary,
     secondary: AppColors.secondary,
-    onSecondary: AppColors.textOnSecondary,
-    surface: AppColors.surface,
     onSurface: AppColors.textPrimary,
     error: AppColors.error,
-    onError: AppColors.textOnPrimary,
     outline: AppColors.border,
     surfaceContainerHighest: AppColors.surfaceVariant,
   );
@@ -133,7 +130,7 @@ class AppTheme {
           foregroundColor: AppColors.textOnPrimary,
           elevation: AppElevation.sm,
           padding: AppSpacing.buttonPadding,
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.radiusMD,
           ),
           textStyle: AppTypography.buttonText,
@@ -146,7 +143,7 @@ class AppTheme {
           foregroundColor: AppColors.primary,
           padding: AppSpacing.buttonPadding,
           side: const BorderSide(color: AppColors.primary),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.radiusMD,
           ),
           textStyle: AppTypography.buttonText,
@@ -162,7 +159,7 @@ class AppTheme {
       );
 
   // Card Themes
-  static CardThemeData get _cardTheme => CardThemeData(
+  static CardThemeData get _cardTheme => const CardThemeData(
         color: AppColors.surface,
         elevation: AppElevation.sm,
         shape: RoundedRectangleBorder(
@@ -171,7 +168,7 @@ class AppTheme {
         margin: AppSpacing.paddingVerticalSM,
       );
 
-  static CardThemeData get _darkCardTheme => CardThemeData(
+  static CardThemeData get _darkCardTheme => const CardThemeData(
         color: AppColors.darkSurface,
         elevation: AppElevation.sm,
         shape: RoundedRectangleBorder(
@@ -184,21 +181,21 @@ class AppTheme {
   static InputDecorationTheme get _inputDecorationTheme => InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        border: OutlineInputBorder(
+        border: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
-        enabledBorder: OutlineInputBorder(
+        enabledBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
-        focusedBorder: OutlineInputBorder(
+        focusedBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
+        errorBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: AppColors.error),
         ),
         contentPadding: AppSpacing.paddingMD,
         labelStyle: AppTypography.bodyMedium,
@@ -211,21 +208,21 @@ class AppTheme {
       InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
-        border: OutlineInputBorder(
+        border: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.darkBorder),
+          borderSide: BorderSide(color: AppColors.darkBorder),
         ),
-        enabledBorder: OutlineInputBorder(
+        enabledBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.darkBorder),
+          borderSide: BorderSide(color: AppColors.darkBorder),
         ),
-        focusedBorder: OutlineInputBorder(
+        focusedBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+          borderSide: BorderSide(color: AppColors.primaryLight, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
+        errorBorder: const OutlineInputBorder(
           borderRadius: AppRadius.radiusMD,
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: AppColors.error),
         ),
         contentPadding: AppSpacing.paddingMD,
         labelStyle: AppTypography.bodyMedium.copyWith(
@@ -242,7 +239,7 @@ class AppTheme {
         selectedColor: AppColors.primary,
         labelStyle: AppTypography.labelMedium,
         padding: AppSpacing.paddingHorizontalSM,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.radiusSM,
         ),
       );
@@ -254,14 +251,14 @@ class AppTheme {
           color: AppColors.darkTextPrimary,
         ),
         padding: AppSpacing.paddingHorizontalSM,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.radiusSM,
         ),
       );
 
   // Bottom Navigation Bar Themes
   static BottomNavigationBarThemeData get _bottomNavigationBarTheme =>
-      BottomNavigationBarThemeData(
+      const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
@@ -270,7 +267,7 @@ class AppTheme {
       );
 
   static BottomNavigationBarThemeData get _darkBottomNavigationBarTheme =>
-      BottomNavigationBarThemeData(
+      const BottomNavigationBarThemeData(
         backgroundColor: AppColors.darkSurface,
         selectedItemColor: AppColors.primaryLight,
         unselectedItemColor: AppColors.darkTextSecondary,
@@ -280,7 +277,7 @@ class AppTheme {
 
   // Floating Action Button Theme
   static FloatingActionButtonThemeData get _floatingActionButtonTheme =>
-      FloatingActionButtonThemeData(
+      const FloatingActionButtonThemeData(
         backgroundColor: AppColors.secondary,
         foregroundColor: AppColors.textOnSecondary,
         elevation: AppElevation.md,

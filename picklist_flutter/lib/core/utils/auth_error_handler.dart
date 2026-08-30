@@ -9,16 +9,17 @@ Provides methods to detect and handle FORBIDDEN/UNAUTHORIZED responses
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../features/auth/data/auth_service.dart';
-import '../../features/auth/state/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/state/auth_provider.dart';
 
 /// Custom exception for authentication failures
 class AuthenticationException implements Exception {
-  final String message;
-  final Map<String, dynamic> response;
 
   const AuthenticationException(this.message, this.response);
+  final String message;
+  final Map<String, dynamic> response;
 
   @override
   String toString() => 'AuthenticationException: $message';
@@ -42,7 +43,7 @@ class AuthErrorHandler {
   /// Returns true if authentication error was handled, false otherwise
   static Future<bool> handleAuthenticationError(
     BuildContext context, 
-    Map<String, dynamic> response
+    Map<String, dynamic> response,
   ) async {
     // Check if this is actually an authentication error
     if (!isAuthenticationError(response)) {
@@ -62,13 +63,12 @@ class AuthErrorHandler {
       // Navigate to login screen
       if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          PageRouteBuilder(
+          PageRouteBuilder<void>(
             pageBuilder: (context, animation, secondaryAnimation) =>
                 const LoginScreen(),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
-            transitionDuration: const Duration(milliseconds: 300),
           ),
           (route) => false, // Remove all previous routes
         );
@@ -79,7 +79,7 @@ class AuthErrorHandler {
       // If error handling fails, still try to navigate to login
       if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
           (route) => false,
         );
       }
@@ -93,7 +93,7 @@ class AuthErrorHandler {
   /// [message] - Optional custom message, defaults to generic auth error message
   static void showAuthenticationErrorMessage(
     BuildContext context, 
-    {String? message}
+    {String? message,}
   ) {
     if (!context.mounted) return;
 
@@ -120,7 +120,7 @@ class AuthErrorHandler {
   static Future<bool> handleWithNotification(
     BuildContext context,
     Map<String, dynamic> response,
-    {bool showMessage = true}
+    {bool showMessage = true,}
   ) async {
     if (!isAuthenticationError(response)) {
       return false;

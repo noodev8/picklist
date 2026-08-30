@@ -33,7 +33,7 @@ class ApiServiceWrapper {
       // Handle authentication error
       final navigatorContext = context ?? navigatorKey.currentContext;
       
-      if (navigatorContext != null) {
+      if (navigatorContext != null && navigatorContext.mounted) {
         await AuthErrorHandler.handleWithNotification(
           navigatorContext,
           authError.response,
@@ -51,7 +51,7 @@ class ApiServiceWrapper {
 
   /// Execute an API call that returns a response map with authentication error handling
   /// 
-  /// This is specifically for API calls that return Map<String, dynamic> responses
+  /// This is specifically for API calls that return `Map<String, dynamic>` responses
   /// [apiCall] - The API call function to execute
   /// [context] - Optional BuildContext for navigation
   /// [showErrorMessage] - Whether to show error message to user (default: true)
@@ -68,7 +68,7 @@ class ApiServiceWrapper {
       if (AuthErrorHandler.isAuthenticationError(response)) {
         final navigatorContext = context ?? navigatorKey.currentContext;
         
-        if (navigatorContext != null) {
+        if (navigatorContext != null && navigatorContext.mounted) {
           await AuthErrorHandler.handleWithNotification(
             navigatorContext,
             response,
@@ -78,7 +78,7 @@ class ApiServiceWrapper {
         
         // Throw authentication exception
         throw AuthenticationException(
-          response['message'] ?? 'Authentication failed',
+          response['message'] as String? ?? 'Authentication failed',
           response,
         );
       }

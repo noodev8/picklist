@@ -1,18 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/pick_location.dart';
+
 import '../models/pick_item.dart';
+import '../models/pick_location.dart';
 import '../providers/picklist_provider.dart';
 import '../theme/app_theme.dart';
 
 class PickListScreen extends StatefulWidget {
-  final PickLocation location;
 
   const PickListScreen({
     super.key,
     required this.location,
   });
+  final PickLocation location;
 
   @override
   State<PickListScreen> createState() => _PickListScreenState();
@@ -20,7 +21,7 @@ class PickListScreen extends StatefulWidget {
 
 class _PickListScreenState extends State<PickListScreen> {
   void _showImageDialog(BuildContext context, String imageUrl) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => Dialog(
         child: CachedNetworkImage(

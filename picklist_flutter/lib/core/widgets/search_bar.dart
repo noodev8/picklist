@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 /// Custom search bar widget with filtering capabilities
 class CustomSearchBar extends StatefulWidget {
@@ -37,7 +38,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.radiusMD,
@@ -45,11 +46,11 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
           color: _focusNode.hasFocus ? AppColors.primary : AppColors.border,
           width: _focusNode.hasFocus ? 2 : 1,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),

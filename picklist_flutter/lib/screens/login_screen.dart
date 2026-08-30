@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LocationListScreen()),
+        MaterialPageRoute<void>(builder: (_) => const LocationListScreen()),
       );
     } else {
       setState(() {

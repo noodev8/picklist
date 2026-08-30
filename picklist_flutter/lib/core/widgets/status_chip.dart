@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 /// Status chip widget for displaying pick status with consistent styling
 class StatusChip extends StatelessWidget {
@@ -25,7 +26,6 @@ class StatusChip extends StatelessWidget {
         borderRadius: AppRadius.radiusSM,
         border: Border.all(
           color: config.borderColor,
-          width: 1,
         ),
       ),
       child: Row(

@@ -6,7 +6,7 @@ class AppSpacing {
   AppSpacing._();
 
   // Base spacing unit (8px)
-  static const double unit = 8.0;
+  static const double unit = 8;
 
   // Spacing values
   static const double xs = unit * 0.5; // 4px
@@ -81,12 +81,12 @@ class AppSpacing {
 class AppRadius {
   AppRadius._();
 
-  static const double xs = 4.0;
-  static const double sm = 8.0;
-  static const double md = 12.0;
-  static const double lg = 16.0;
-  static const double xl = 20.0;
-  static const double xxl = 24.0;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
 
   // Common BorderRadius
   static const BorderRadius radiusXS = BorderRadius.all(Radius.circular(xs));

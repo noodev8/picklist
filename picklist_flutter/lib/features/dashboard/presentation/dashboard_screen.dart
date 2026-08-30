@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/auth_error_handler.dart';
 
-import '../../auth/state/auth_provider.dart';
-import '../../splash/presentation/splash_screen.dart';
-import '../../picklist/presentation/picklist_screen.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/auth_error_handler.dart';
 import '../../../providers/picklist_provider.dart';
-import 'widgets/stats_card.dart';
+import '../../auth/state/auth_provider.dart';
+import '../../picklist/presentation/picklist_screen.dart';
+import '../../splash/presentation/splash_screen.dart';
 import 'widgets/location_card.dart';
+import 'widgets/stats_card.dart';
 
 /// Modern dashboard screen with improved layout and statistics
 class DashboardScreen extends StatefulWidget {
@@ -39,12 +39,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
 
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOut,
-    ));
+    ),);
 
     _animationController.forward();
   }
@@ -66,7 +66,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -87,13 +86,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
+        PageRouteBuilder<void>(
           pageBuilder: (context, animation, secondaryAnimation) =>
               const SplashScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 300),
         ),
       );
     }
@@ -101,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _navigateToPicklist(String locationId, String locationName) {
     Navigator.of(context).push(
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => PicklistScreen(
           locationId: locationId,
           locationName: locationName,
@@ -114,9 +112,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// This is called when user taps on the 'Pending Picks' card
   void _navigateToAllPicks() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PicklistScreen(
-          locationId: null, // null means show all picks
+      MaterialPageRoute<void>(
+        builder: (context) => const PicklistScreen(
           locationName: 'All Locations',
         ),
       ),
@@ -137,11 +134,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       // Show success message to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Dashboard refreshed successfully'),
+          const SnackBar(
+            content: Text('Dashboard refreshed successfully'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -152,7 +149,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         await AuthErrorHandler.handleWithNotification(
           context,
           authError.response,
-          showMessage: true,
         );
       }
     } catch (e) {
@@ -201,7 +197,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     return SliverAppBar(
       expandedHeight: 120,
       floating: true,  // Changed from false to true to allow pull-to-refresh
-      pinned: false,   // Changed from true to false to allow pull-to-refresh
       snap: true,      // Added snap behavior for better UX
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
