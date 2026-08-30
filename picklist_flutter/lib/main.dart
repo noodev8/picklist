@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'core/services/api_service_wrapper.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'providers/picklist_provider.dart';
-import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(AppTheme.overlayStyle);
   runApp(const PicklistApp());
 }
 
@@ -19,14 +21,14 @@ class PicklistApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => PicklistProvider()),
+        ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<PicklistProvider>(
+          create: (_) => PicklistProvider(),
+        ),
       ],
       child: MaterialApp(
         title: 'Picklist',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light,
+        theme: AppTheme.theme,
         home: const SplashScreen(),
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,

@@ -1,114 +1,42 @@
 import 'package:flutter/material.dart';
 
-/// Consistent spacing system for the app
-/// Based on 8px grid system for better visual rhythm
+/// 4px base grid. Tighter than the usual 8px scale because pick rows carry a lot
+/// of short data and need to stay dense enough to see a whole bay at once.
 class AppSpacing {
   AppSpacing._();
-
-  // Base spacing unit (8px)
-  static const double unit = 8;
-
-  // Spacing values
-  static const double xs = unit * 0.5; // 4px
-  static const double sm = unit; // 8px
-  static const double md = unit * 2; // 16px
-  static const double lg = unit * 3; // 24px
-  static const double xl = unit * 4; // 32px
-  static const double xxl = unit * 6; // 48px
-  static const double xxxl = unit * 8; // 64px
-
-  // Common EdgeInsets
-  static const EdgeInsets paddingXS = EdgeInsets.all(xs);
-  static const EdgeInsets paddingSM = EdgeInsets.all(sm);
-  static const EdgeInsets paddingMD = EdgeInsets.all(md);
-  static const EdgeInsets paddingLG = EdgeInsets.all(lg);
-  static const EdgeInsets paddingXL = EdgeInsets.all(xl);
-
-  // Horizontal padding
-  static const EdgeInsets paddingHorizontalXS = EdgeInsets.symmetric(horizontal: xs);
-  static const EdgeInsets paddingHorizontalSM = EdgeInsets.symmetric(horizontal: sm);
-  static const EdgeInsets paddingHorizontalMD = EdgeInsets.symmetric(horizontal: md);
-  static const EdgeInsets paddingHorizontalLG = EdgeInsets.symmetric(horizontal: lg);
-  static const EdgeInsets paddingHorizontalXL = EdgeInsets.symmetric(horizontal: xl);
-
-  // Vertical padding
-  static const EdgeInsets paddingVerticalXS = EdgeInsets.symmetric(vertical: xs);
-  static const EdgeInsets paddingVerticalSM = EdgeInsets.symmetric(vertical: sm);
-  static const EdgeInsets paddingVerticalMD = EdgeInsets.symmetric(vertical: md);
-  static const EdgeInsets paddingVerticalLG = EdgeInsets.symmetric(vertical: lg);
-  static const EdgeInsets paddingVerticalXL = EdgeInsets.symmetric(vertical: xl);
-
-  // Screen padding (safe areas)
-  static const EdgeInsets screenPadding = EdgeInsets.all(md);
-  static const EdgeInsets screenPaddingHorizontal = EdgeInsets.symmetric(horizontal: md);
-  static const EdgeInsets screenPaddingVertical = EdgeInsets.symmetric(vertical: md);
-
-  // Card and container padding
-  static const EdgeInsets cardPadding = EdgeInsets.all(md);
-  static const EdgeInsets cardPaddingLarge = EdgeInsets.all(lg);
-  static const EdgeInsets listItemPadding = EdgeInsets.symmetric(
-    horizontal: md,
-    vertical: sm,
-  );
-
-  // Button padding
-  static const EdgeInsets buttonPadding = EdgeInsets.symmetric(
-    horizontal: lg,
-    vertical: sm,
-  );
-  static const EdgeInsets buttonPaddingLarge = EdgeInsets.symmetric(
-    horizontal: xl,
-    vertical: md,
-  );
-
-  // Common SizedBox widgets for spacing
-  static const Widget verticalSpaceXS = SizedBox(height: xs);
-  static const Widget verticalSpaceSM = SizedBox(height: sm);
-  static const Widget verticalSpaceMD = SizedBox(height: md);
-  static const Widget verticalSpaceLG = SizedBox(height: lg);
-  static const Widget verticalSpaceXL = SizedBox(height: xl);
-  static const Widget verticalSpaceXXL = SizedBox(height: xxl);
-
-  static const Widget horizontalSpaceXS = SizedBox(width: xs);
-  static const Widget horizontalSpaceSM = SizedBox(width: sm);
-  static const Widget horizontalSpaceMD = SizedBox(width: md);
-  static const Widget horizontalSpaceLG = SizedBox(width: lg);
-  static const Widget horizontalSpaceXL = SizedBox(width: xl);
-  static const Widget horizontalSpaceXXL = SizedBox(width: xxl);
-}
-
-/// Border radius values for consistent rounded corners
-class AppRadius {
-  AppRadius._();
 
   static const double xs = 4;
   static const double sm = 8;
   static const double md = 12;
   static const double lg = 16;
-  static const double xl = 20;
-  static const double xxl = 24;
+  static const double xl = 24;
+  static const double xxl = 40;
 
-  // Common BorderRadius
-  static const BorderRadius radiusXS = BorderRadius.all(Radius.circular(xs));
-  static const BorderRadius radiusSM = BorderRadius.all(Radius.circular(sm));
-  static const BorderRadius radiusMD = BorderRadius.all(Radius.circular(md));
-  static const BorderRadius radiusLG = BorderRadius.all(Radius.circular(lg));
-  static const BorderRadius radiusXL = BorderRadius.all(Radius.circular(xl));
-  static const BorderRadius radiusXXL = BorderRadius.all(Radius.circular(xxl));
+  /// Horizontal gutter used by every screen, so headers, rows and empty states
+  /// all hang off the same left edge.
+  static const double gutter = 16;
 
-  // Circular radius for buttons and avatars
-  static const BorderRadius circular = BorderRadius.all(Radius.circular(100));
+  static const EdgeInsets screen = EdgeInsets.symmetric(horizontal: gutter);
+
+  static const Widget h4 = SizedBox(height: xs);
+  static const Widget h8 = SizedBox(height: sm);
+  static const Widget h12 = SizedBox(height: md);
+  static const Widget h16 = SizedBox(height: lg);
+  static const Widget h24 = SizedBox(height: xl);
+  static const Widget h40 = SizedBox(height: xxl);
+
+  static const Widget w4 = SizedBox(width: xs);
+  static const Widget w8 = SizedBox(width: sm);
+  static const Widget w12 = SizedBox(width: md);
+  static const Widget w16 = SizedBox(width: lg);
 }
 
-/// Elevation values for consistent shadows
-class AppElevation {
-  AppElevation._();
+/// Corners stay small and consistent - this is signage, not a consumer app.
+class AppRadius {
+  AppRadius._();
 
-  static const double none = 0;
-  static const double xs = 1;
-  static const double sm = 2;
-  static const double md = 4;
-  static const double lg = 8;
-  static const double xl = 12;
-  static const double xxl = 16;
+  static const BorderRadius sm = BorderRadius.all(Radius.circular(4));
+  static const BorderRadius md = BorderRadius.all(Radius.circular(8));
+  static const BorderRadius lg = BorderRadius.all(Radius.circular(12));
+  static const BorderRadius pill = BorderRadius.all(Radius.circular(999));
 }

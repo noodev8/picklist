@@ -1,639 +1,316 @@
-import 'package:flutter/material.dart' hide FilterChip;
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/auth_error_handler.dart';
-import '../../../core/widgets/search_bar.dart';
+import '../../../models/pick_area.dart';
 import '../../../models/pick_item.dart';
 import '../../../providers/picklist_provider.dart';
-import 'widgets/filter_bottom_sheet.dart';
-import 'widgets/pick_item_card.dart';
-import 'widgets/pick_stats_header.dart';
-import 'widgets/simple_rack_header.dart';
+import '../../home/presentation/widgets/job_link.dart';
+import 'widgets/bay_bar.dart';
+import 'widgets/pick_row.dart';
 
-/// Enhanced picklist screen with search, filtering, and better UX
-/// Can show picks for a specific location or all picks when locationId is null
+/// The working list for one area of the unit, or for the whole unit.
+///
+/// Picked lines stay exactly where they are. The old screen dropped a line the
+/// instant it was ticked, which meant a picker filtering for outstanding work
+/// watched their list dissolve under them and lost their place in the aisle.
+/// Here the list only changes when the picker asks it to - "Hide picked" sets
+/// aside what is done at that moment, and anything picked after that stays put
+/// until they ask again.
 class PicklistScreen extends StatefulWidget {
   const PicklistScreen({
     super.key,
-    this.locationId, // Made optional - null means show all picks
-    required this.locationName,
+    required this.area,
+    required this.title,
   });
 
-  final String? locationId; // Nullable to support showing all picks
-  final String locationName;
+  /// Area to show, or null for the whole unit.
+  final String? area;
+
+  final String title;
 
   @override
   State<PicklistScreen> createState() => _PicklistScreenState();
 }
 
-class _PicklistScreenState extends State<PicklistScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late AnimationController _pickAnimationController;
+class _PicklistScreenState extends State<PicklistScreen> {
+  /// Lines the picker has explicitly set aside. Nothing else ever removes a line
+  /// from the list mid-run.
+  final Set<String> _setAside = <String>{};
 
-  // Filter state variables (removed search query)
-  bool? _statusFilter; // null = all, true = picked, false = unpicked
-
-  // Enhanced animation tracking for picked items
-  final Map<String, AnimationController> _itemAnimations = {};
-  final Set<String> _itemsBeingAnimated = <String>{};
-
-  @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-    _loadPicksForLocation();
-  }
-
-  void _setupAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _pickAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _animationController.forward();
-  }
-
-  Future<void> _loadPicksForLocation() async {
+  Future<void> _refresh() async {
     try {
-      final provider = context.read<PicklistProvider>();
-
-      // If locationId is null, we're showing all picks, so load all picks data
-      if (widget.locationId == null) {
-        await provider.loadAllPicksAfterLogin();
-      } else {
-        await provider.loadPicksForLocation(widget.locationId!, forceRefresh: true);
-      }
-    } on AuthenticationException catch (authError) {
-      // Handle authentication error
+      await context.read<PicklistProvider>().load(silent: true);
+      if (mounted) setState(_setAside.clear);
+    } on AuthenticationException catch (error) {
       if (mounted) {
-        await AuthErrorHandler.handleWithNotification(
-          context,
-          authError.response,
-        );
+        await AuthErrorHandler.handleWithNotification(context, error.response);
       }
-    } catch (e) {
-      // Handle other errors silently - provider will show error messages
     }
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _pickAnimationController.dispose();
-    // Dispose all item-specific animation controllers
-    for (final controller in _itemAnimations.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
+  Future<void> _toggle(PickItem item) async {
+    final PicklistProvider provider = context.read<PicklistProvider>();
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
 
-  // Helper method to get filtered items based on current filter state
-  List<PickItem> _getFilteredItems(PicklistProvider provider) {
-    return provider.getFilteredItems(
-      locationId: widget.locationId,
-      isPicked: _statusFilter,
-    );
-  }
+    unawaited(HapticFeedback.mediumImpact());
+    await provider.toggle(item.id);
 
-  // Method to show filter bottom sheet
-  void _showFilterBottomSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(
-        currentStatusFilter: _statusFilter,
-        onFiltersApplied: (statusFilter) {
-          setState(() {
-            _statusFilter = statusFilter;
-          });
-        },
-      ),
-    );
-  }
-
-  // Enhanced method to handle item toggle with smooth animation
-  Future<void> _togglePickStatusWithAnimation(String itemId) async {
-    try {
-      final provider = context.read<PicklistProvider>();
-
-      // Get the picks list and find the specific item
-      final List<PickItem> picks;
-      if (widget.locationId != null) {
-        picks = await provider.getPicksForLocation(widget.locationId!);
-      } else {
-        picks = await provider.getAllPicks();
-      }
-      final item = picks.firstWhere((item) => item.id == itemId);
-
-      // Store the original status to determine what action is being performed
-      final wasPickedBefore = item.isPicked;
-
-      // Create animation controller for this specific item if it doesn't exist
-      if (!_itemAnimations.containsKey(itemId)) {
-        _itemAnimations[itemId] = AnimationController(
-          duration: const Duration(milliseconds: 600),
-          vsync: this,
-        );
-      }
-
-      final animationController = _itemAnimations[itemId]!;
-
-      // Add item to animation tracking
-      setState(() {
-        _itemsBeingAnimated.add(itemId);
-      });
-
-      // If item is being picked (not unpicked), play success animation
-      if (!wasPickedBefore) {
-        // Start the pick animation (scale + fade effect)
-        animationController.forward();
-
-        // Wait for animation to reach halfway point before toggling status
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      }
-
-      // Toggle the status in the provider
-      if (widget.locationId != null) {
-        await provider.togglePickStatus(widget.locationId!, itemId);
-      } else {
-        await provider.togglePickStatusGlobally(itemId);
-      }
-
-      // If filtering by pending only and item was just picked, wait for animation to complete
-      if (_statusFilter == false && !wasPickedBefore) {
-        // Item was just picked, wait for full animation before allowing filter to hide it
-        await Future<void>.delayed(const Duration(milliseconds: 600));
-      } else {
-        // For other cases, shorter delay
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-      }
-
-      // Clean up animation state if widget is still mounted
-      if (mounted) {
-        setState(() {
-          _itemsBeingAnimated.remove(itemId);
-        });
-        // Reset animation controller for reuse
-        animationController.reset();
-      }
-    } on AuthenticationException catch (authError) {
-      // Handle authentication error
-      if (mounted) {
-        await AuthErrorHandler.handleWithNotification(
-          context,
-          authError.response,
-        );
-      }
-    } catch (e) {
-      // Handle other errors
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+    final String? error = provider.errorMessage;
+    if (error != null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
           SnackBar(
-            content: Text('Error updating pick: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Could not save that pick. $error'),
+            backgroundColor: AppColors.alert,
           ),
         );
-      }
+      provider.clearError();
     }
   }
 
-  // Method to clear all filters
-  void _clearFilters() {
+  void _hidePicked(List<PickItem> visible) {
     setState(() {
-      _statusFilter = null;
+      _setAside.addAll(
+        visible.where((PickItem i) => i.isPicked).map((PickItem i) => i.id),
+      );
     });
   }
 
-  // Helper method to check if any filters are active
-  bool _hasActiveFilters() {
-    return _statusFilter != null;
-  }
-
-  // Helper method to get filter label text
-  String? _getFilterLabel() {
-    if (_statusFilter == null) return null;
-    return _statusFilter! ? 'Picked Only' : 'Pending Only';
-  }
-
-  /// Refresh picks data for the current location or all locations
-  /// This method is called when user pulls down to refresh
-  Future<void> _refreshPicklist() async {
-    try {
-      // Get the picklist provider and refresh picks
-      final picklistProvider = context.read<PicklistProvider>();
-
-      if (widget.locationId != null) {
-        // Force refresh picks for the current location
-        // This will reload all pick data from the server
-        await picklistProvider.loadPicksForLocation(
-          widget.locationId!,
-          forceRefresh: true,
-        );
-      } else {
-        // Refresh all picks data when showing all locations
-        await picklistProvider.loadAllPicksAfterLogin();
-      }
-
-    } on AuthenticationException catch (authError) {
-      // Handle authentication error by redirecting to login
-      if (mounted) {
-        await AuthErrorHandler.handleWithNotification(
-          context,
-          authError.response,
-        );
-      }
-    } catch (e) {
-      // Show error message for other types of errors
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to refresh picks: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
+  void _showAll() => setState(_setAside.clear);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Consumer<PicklistProvider>(
-        builder: (context, provider, _) {
-          final items = _getFilteredItems(provider);
+    return Consumer<PicklistProvider>(
+      builder: (BuildContext context, PicklistProvider provider, _) {
+        final List<PickItem> all = provider.itemsForArea(widget.area);
+        final List<PickItem> visible = all
+            .where((PickItem item) => !_setAside.contains(item.id))
+            .toList();
+        final int pickedInView =
+            visible.where((PickItem i) => i.isPicked).length;
 
-          return RefreshIndicator(
-            // Add pull-to-refresh functionality to picklist
-            onRefresh: _refreshPicklist,
+        return Scaffold(
+          appBar: _appBar(all, provider),
+          bottomNavigationBar: _listControls(visible, pickedInView),
+          body: RefreshIndicator(
+            onRefresh: _refresh,
+            color: AppColors.signal,
+            backgroundColor: AppColors.deck,
             child: CustomScrollView(
-              slivers: [
-                _buildAppBar(provider),
-                SliverToBoxAdapter(
-                  child: PickStatsHeader(
-                    locationId: widget.locationId,
-                    provider: provider,
-                  ),
-                ),
-                _buildFilterSection(),
-                _buildRackGroupedPickList(items, provider),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildAppBar(PicklistProvider provider) {
-    final int remainingPicks;
-    if (widget.locationId != null) {
-      remainingPicks = provider.getRemainingPicksForLocation(widget.locationId!);
-    } else {
-      remainingPicks = provider.getRemainingPicksGlobally();
-    }
-    
-    return SliverAppBar(
-      expandedHeight: 120,
-      pinned: true,
-      backgroundColor: AppColors.primary,
-      flexibleSpace: FlexibleSpaceBar(
-        title: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.locationName,
-              style: AppTypography.headlineMedium.copyWith(
-                color: AppColors.textOnPrimary,
-              ),
-            ),
-            Text(
-              '$remainingPicks remaining',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textOnPrimary.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.primaryDark,
-              ],
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        if (provider.isAmazonMode)
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.textOnPrimary.withValues(alpha: 0.2),
-                  borderRadius: AppRadius.radiusSM,
-                ),
-                child: Text(
-                  'AMAZON',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textOnPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-  Widget _buildFilterSection() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: AppSpacing.screenPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Filter button row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Picks',
-                  style: AppTypography.titleLarge,
-                ),
-                // Filter button
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: _hasActiveFilters() 
-                        ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.surfaceVariant,
-                    borderRadius: AppRadius.radiusMD,
-                    border: Border.all(
-                      color: _hasActiveFilters() 
-                          ? AppColors.primary 
-                          : AppColors.border,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: <Widget>[
+                if (visible.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _emptyState(all.isEmpty),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.gutter,
+                      0,
+                      AppSpacing.gutter,
+                      AppSpacing.xxl,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(
+                        _rows(visible, provider),
+                      ),
                     ),
                   ),
-                  child: IconButton(
-                    onPressed: _showFilterBottomSheet,
-                    icon: Icon(
-                      Icons.filter_list,
-                      color: _hasActiveFilters() 
-                          ? AppColors.primary 
-                          : AppColors.textSecondary,
-                    ),
-                    tooltip: 'Filter picks',
-                  ),
-                ),
               ],
             ),
-            
-            // Active filters display
-            if (_hasActiveFilters()) ...[
-              AppSpacing.verticalSpaceMD,
-              _buildActiveFilters(),
-            ],
-            
-            AppSpacing.verticalSpaceMD,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActiveFilters() {
-    final filterChips = <Widget>[];
-    
-    // Add status filter chip if active
-    final statusLabel = _getFilterLabel();
-    if (statusLabel != null) {
-      filterChips.add(
-        FilterChip(
-          label: statusLabel,
-          onRemove: () {
-            setState(() {
-              _statusFilter = null;
-            });
-          },
-          color: _statusFilter! ? AppColors.success : AppColors.warning,
-        ),
-      );
-    }
-    
-    return FilterSection(
-      filters: filterChips,
-      onClearAll: _clearFilters,
-    );
-  }
-
-  Widget _buildRackGroupedPickList(List<PickItem> items, PicklistProvider provider) {
-    if (items.isEmpty) {
-      return SliverFillRemaining(
-        child: _buildEmptyState(),
-      );
-    }
-
-    // Group items by rack location
-    final Map<String, List<PickItem>> groupedItems = {};
-    for (final item in items) {
-      if (!groupedItems.containsKey(item.location)) {
-        groupedItems[item.location] = [];
-      }
-      groupedItems[item.location]!.add(item);
-    }
-
-    // Create a flat list with headers and items
-    final List<Widget> widgets = [];
-    int animationIndex = 0;
-
-    for (final entry in groupedItems.entries) {
-      final rackLocation = entry.key;
-      final rackItems = entry.value;
-      final pickedCount = rackItems.where((item) => item.isPicked).length;
-
-      // Add rack header
-      widgets.add(
-        SimpleRackHeader(
-          rackLocation: rackLocation,
-          itemCount: rackItems.length,
-          pickedCount: pickedCount,
-          showBuildingInfo: widget.locationId == null, // Show building info when viewing all locations
-        ),
-      );
-
-      // Add items for this rack
-      for (final item in rackItems) {
-        widgets.add(
-          AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              final animation = Tween<double>(
-                begin: 0,
-                end: 1,
-              ).animate(CurvedAnimation(
-                parent: _animationController,
-                curve: Interval(
-                  (animationIndex * 0.05).clamp(0.0, 1.0),
-                  ((animationIndex * 0.05) + 0.2).clamp(0.0, 1.0),
-                  curve: Curves.easeOut,
-                ),
-              ),);
-
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.3),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: Padding(
-                    padding: AppSpacing.paddingVerticalSM,
-                    child: _buildAnimatedPickItem(item),
-                  ),
-                ),
-              );
-            },
           ),
         );
-        animationIndex++;
-      }
-    }
+      },
+    );
+  }
 
-    return SliverPadding(
-      padding: AppSpacing.screenPadding,
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => widgets[index],
-          childCount: widgets.length,
+  PreferredSizeWidget _appBar(List<PickItem> all, PicklistProvider provider) {
+    final int total = all.length;
+    final int left = all.where((PickItem i) => !i.isPicked).length;
+    final double progress = total == 0 ? 0 : (total - left) / total;
+
+    return AppBar(
+      titleSpacing: 0,
+      title: Row(
+        children: <Widget>[
+          Flexible(
+            child: Text(
+              widget.title.toUpperCase(),
+              style: AppTypography.bayCode,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          JobTag(mode: provider.mode),
+        ],
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(40),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.gutter,
+            0,
+            AppSpacing.gutter,
+            AppSpacing.md,
+          ),
+          child: Row(
+            children: <Widget>[
+              Text(
+                left == 0 ? 'All picked' : '$left left',
+                style: AppTypography.detail.copyWith(
+                  color: left == 0 ? AppColors.done : AppColors.signal,
+                ),
+              ),
+              Text('  ·  $total lines', style: AppTypography.detail),
+              AppSpacing.w16,
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: AppRadius.pill,
+                  child: SizedBox(
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: AppColors.rule,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        left == 0 ? AppColors.done : AppColors.signal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Enhanced animated pick item with success feedback
-  Widget _buildAnimatedPickItem(PickItem item) {
-    final isBeingAnimated = _itemsBeingAnimated.contains(item.id);
-    final animationController = _itemAnimations[item.id];
+  /// Bay bars interleaved with rows, so the list reads as the walk it is.
+  List<Widget> _rows(List<PickItem> visible, PicklistProvider provider) {
+    final List<Widget> widgets = <Widget>[];
+    String? currentBay;
 
-    if (isBeingAnimated && animationController != null) {
-      // Create success animation with scale and color effects
-      final scaleAnimation = Tween<double>(
-        begin: 1,
-        end: 1.1,
-      ).animate(CurvedAnimation(
-        parent: animationController,
-        curve: const Interval(0, 0.5, curve: Curves.elasticOut),
-      ),);
+    for (int i = 0; i < visible.length; i++) {
+      final PickItem item = visible[i];
 
-      final fadeAnimation = Tween<double>(
-        begin: 1,
-        end: 0.8,
-      ).animate(CurvedAnimation(
-        parent: animationController,
-        curve: const Interval(0.5, 1, curve: Curves.easeOut),
-      ),);
+      if (item.location != currentBay) {
+        currentBay = item.location;
+        final List<PickItem> inBay = visible
+            .where((PickItem other) => other.location == currentBay)
+            .toList();
+        widgets.add(
+          BayBar(
+            bay: item.bay,
+            area: PickArea.of(item.location),
+            remaining: inBay.where((PickItem b) => !b.isPicked).length,
+            total: inBay.length,
+            showArea: widget.area == null,
+          ),
+        );
+      }
 
-      return AnimatedBuilder(
-        animation: animationController,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: scaleAnimation.value,
-            child: AnimatedOpacity(
-              opacity: fadeAnimation.value,
-              duration: const Duration(milliseconds: 100),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: AppRadius.radiusMD,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.success.withValues(alpha: 0.3),
-                      blurRadius: 8 * scaleAnimation.value,
-                      spreadRadius: 2 * scaleAnimation.value,
-                    ),
-                  ],
-                ),
-                child: PickItemCard(
-                  item: item,
-                  onToggle: () => _togglePickStatusWithAnimation(item.id),
-                ),
-              ),
-            ),
-          );
-        },
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: PickRow(
+            item: item,
+            isBusy: provider.isInFlight(item.id),
+            onToggle: () => _toggle(item),
+          ),
+        ),
       );
     }
 
-    // Default state - no animation
-    return AnimatedOpacity(
-      opacity: isBeingAnimated ? 0.7 : 1.0,
-      duration: const Duration(milliseconds: 200),
-      child: PickItemCard(
-        item: item,
-        onToggle: () => _togglePickStatusWithAnimation(item.id),
+    return widgets;
+  }
+
+  /// Sits under the list rather than floating over it, so it never covers the
+  /// last row of a bay. Only appears when there is something to set aside or
+  /// bring back.
+  Widget? _listControls(List<PickItem> visible, int pickedInView) {
+    final bool canHide = pickedInView > 0;
+    final bool canRestore = _setAside.isNotEmpty;
+    if (!canHide && !canRestore) return null;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.gutter,
+        AppSpacing.md,
+        AppSpacing.gutter,
+        AppSpacing.md + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.deck,
+        border: Border(top: BorderSide(color: AppColors.rule)),
+      ),
+      child: Row(
+        children: <Widget>[
+          if (canRestore)
+            TextButton(
+              onPressed: _showAll,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.chalkDim,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              child: Text(
+                'Show all',
+                style: AppTypography.label.copyWith(color: AppColors.chalkDim),
+              ),
+            ),
+          const Spacer(),
+          if (canHide)
+            FilledButton(
+              onPressed: () => _hidePicked(visible),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.deckHigh,
+                foregroundColor: AppColors.chalk,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.md,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+              ),
+              child: Text(
+                'Hide $pickedInView picked',
+                style: AppTypography.label,
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    // Check if it's because of filters or genuinely no items
-    final hasFilters = _hasActiveFilters();
-    
-    return Center(
+  Widget _emptyState(bool areaIsEmpty) {
+    final String headline = areaIsEmpty ? 'Nothing here' : 'Bay walked';
+    final String body = areaIsEmpty
+        ? 'No picks waiting in ${widget.title}.'
+        : 'Everything showing is picked and set aside.';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasFilters ? Icons.filter_list_off : Icons.list,
-            size: 64,
-            color: AppColors.textTertiary,
+        children: <Widget>[
+          const Icon(
+            Icons.check_circle_outline_rounded,
+            size: 40,
+            color: AppColors.done,
           ),
-          AppSpacing.verticalSpaceMD,
-          Text(
-            hasFilters ? 'No picks found' : 'No picks available',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          AppSpacing.verticalSpaceSM,
-          Text(
-            hasFilters 
-                ? 'Try adjusting your filter'
-                : 'No picks available for this location',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (hasFilters) ...[
-            AppSpacing.verticalSpaceLG,
-            TextButton(
-              onPressed: _clearFilters,
-              child: Text(
-                'Clear Filter',
-                style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
+          AppSpacing.h16,
+          Text(headline, style: AppTypography.title),
+          AppSpacing.h8,
+          Text(body, style: AppTypography.detail, textAlign: TextAlign.center),
         ],
       ),
     );

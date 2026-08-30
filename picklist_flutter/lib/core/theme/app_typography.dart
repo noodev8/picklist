@@ -1,152 +1,128 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'app_colors.dart';
 
-/// Typography system for the picklist app
-/// Uses Inter font family for excellent readability
+/// Two faces, each with a job.
+///
+/// Barlow Condensed carries anything a picker reads at arm's length while
+/// walking - bay codes, shoe sizes, remaining counts. It is the type used on
+/// warehouse racking and shipping labels, and it fits long codes without
+/// shrinking them.
+///
+/// Barlow (the same family, normal width) carries everything read standing
+/// still: product names, colours, order refs, help text.
+///
+/// Every numeral style is tabular so counts and sizes stay in column as they
+/// change, instead of jittering the row.
 class AppTypography {
   AppTypography._();
 
-  // Base font family
-  static String get fontFamily => GoogleFonts.inter().fontFamily!;
+  static const List<FontFeature> _tabular = <FontFeature>[
+    FontFeature.tabularFigures(),
+  ];
 
-  // Display styles - for large headings and hero text
-  static TextStyle get displayLarge => GoogleFonts.inter(
-        fontSize: 32,
+  // ---------------------------------------------------------------- signage
+
+  /// The shoe size on a pick row - the single biggest thing on screen.
+  static TextStyle get sizeNumeral => GoogleFonts.barlowCondensed(
+        fontSize: 30,
         fontWeight: FontWeight.w700,
-        height: 1.2,
-        color: AppColors.textPrimary,
+        height: 1,
         letterSpacing: -0.5,
+        fontFeatures: _tabular,
       );
 
-  static TextStyle get displayMedium => GoogleFonts.inter(
-        fontSize: 28,
+  /// The style reference on a pick row - the second thing read, straight after
+  /// the size, and the one that settles which box it is.
+  static TextStyle get itemCode => GoogleFonts.barlowCondensed(
+        fontSize: 25,
         fontWeight: FontWeight.w600,
-        height: 1.3,
-        color: AppColors.textPrimary,
-        letterSpacing: -0.25,
+        height: 1.05,
+        letterSpacing: 0.8,
+        color: AppColors.chalk,
+        fontFeatures: _tabular,
       );
 
-  static TextStyle get displaySmall => GoogleFonts.inter(
+  /// Bay code on a section bar, and area name on the home screen.
+  static TextStyle get bayCode => GoogleFonts.barlowCondensed(
+        fontSize: 26,
+        fontWeight: FontWeight.w600,
+        height: 1.05,
+        letterSpacing: 0.5,
+        color: AppColors.chalk,
+        fontFeatures: _tabular,
+      );
+
+  /// Big remaining-count numerals on the home screen.
+  static TextStyle get counter => GoogleFonts.barlowCondensed(
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        height: 0.95,
+        letterSpacing: -1,
+        fontFeatures: _tabular,
+      );
+
+  /// Screen titles.
+  static TextStyle get title => GoogleFonts.barlowCondensed(
         fontSize: 24,
         fontWeight: FontWeight.w600,
+        height: 1.1,
+        letterSpacing: 0.3,
+        color: AppColors.chalk,
+      );
+
+  /// All-caps eyebrow above a group of content.
+  static TextStyle get eyebrow => GoogleFonts.barlowCondensed(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+        letterSpacing: 1.6,
+        color: AppColors.chalkDim,
+      );
+
+  // ------------------------------------------------------------------- body
+
+  static TextStyle get body => GoogleFonts.barlow(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.45,
+        color: AppColors.chalk,
+      );
+
+  /// Supporting detail on a row: brand, colour, order ref.
+  static TextStyle get detail => GoogleFonts.barlow(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
         height: 1.3,
-        color: AppColors.textPrimary,
+        color: AppColors.chalkDim,
+        fontFeatures: _tabular,
       );
 
-  // Headline styles - for section headers
-  static TextStyle get headlineLarge => GoogleFonts.inter(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        height: 1.4,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get headlineMedium => GoogleFonts.inter(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        height: 1.4,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get headlineSmall => GoogleFonts.inter(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        height: 1.4,
-        color: AppColors.textPrimary,
-      );
-
-  // Title styles - for card titles and important text
-  static TextStyle get titleLarge => GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get titleMedium => GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get titleSmall => GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
-        color: AppColors.textPrimary,
-        letterSpacing: 0.1,
-      );
-
-  // Body styles - for regular content
-  static TextStyle get bodyLarge => GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        height: 1.6,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get bodyMedium => GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        height: 1.6,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get bodySmall => GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.6,
-        color: AppColors.textSecondary,
-      );
-
-  // Label styles - for buttons, chips, and small labels
-  static TextStyle get labelLarge => GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        height: 1.4,
-        color: AppColors.textPrimary,
-        letterSpacing: 0.1,
-      );
-
-  static TextStyle get labelMedium => GoogleFonts.inter(
+  /// Product code - a machine string, spaced out so it can be read back.
+  static TextStyle get code => GoogleFonts.barlow(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        height: 1.4,
-        color: AppColors.textPrimary,
-        letterSpacing: 0.5,
+        height: 1.3,
+        letterSpacing: 0.4,
+        color: AppColors.chalkFaint,
+        fontFeatures: _tabular,
       );
 
-  static TextStyle get labelSmall => GoogleFonts.inter(
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        height: 1.4,
-        color: AppColors.textSecondary,
-        letterSpacing: 0.5,
-      );
-
-  // Special styles for specific use cases
-  static TextStyle get buttonText => GoogleFonts.inter(
+  /// Buttons and chips.
+  static TextStyle get label => GoogleFonts.barlow(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         height: 1.2,
-        letterSpacing: 0.25,
+        letterSpacing: 0.2,
+        color: AppColors.chalk,
       );
 
-  static TextStyle get caption => GoogleFonts.inter(
+  static TextStyle get labelSmall => GoogleFonts.barlow(
         fontSize: 11,
-        fontWeight: FontWeight.w400,
-        height: 1.4,
-        color: AppColors.textTertiary,
-        letterSpacing: 0.4,
-      );
-
-  static TextStyle get overline => GoogleFonts.inter(
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        height: 1.6,
-        color: AppColors.textSecondary,
-        letterSpacing: 1.5,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+        letterSpacing: 0.8,
+        color: AppColors.chalkDim,
       );
 }

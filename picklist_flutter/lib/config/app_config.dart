@@ -33,35 +33,4 @@ class AppConfig {
   // Request timeout settings
   static const Duration requestTimeout = Duration(seconds: 30);
   static const Duration connectionTimeout = Duration(seconds: 10);
-  
-  // Staging area Amazon stock is moved to when picked.
-  // Must match AMAZON_LOCATION in picklist_server/constants.js.
-  static const String amazonLocation = 'C3-Amazon';
-
-  // Location mapping for filtering API calls
-  // Maps UI location IDs to API filter strings
-  static const Map<String, String> locationFilters = {
-    'c3f': 'C3-Front',
-    'c3b': 'C3-Back',
-    'c3s': 'C3-Shop',
-    'c1': 'C1',
-  };
-  
-  // Location display names
-  static const Map<String, String> locationNames = {
-    'c3f': 'C3-Front',
-    'c3b': 'C3-Back',
-    'c3s': 'C3-Shop',
-    'c1': 'C1',
-  };
-  
-  // Get location filter string for API calls
-  static String? getLocationFilter(String locationId) {
-    return locationFilters[locationId];
-  }
-  
-  // Get location display name
-  static String getLocationName(String locationId) {
-    return locationNames[locationId] ?? locationId;
-  }
 }

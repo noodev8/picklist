@@ -18,6 +18,10 @@ enum PickMode {
   /// Value sent to the server as `pick_type`
   String get apiValue => name;
 
-  /// Label shown in the mode selector and screen headers
+  /// Short label, for tags and inline references.
   String get displayName => this == PickMode.amazon ? 'Amazon' : 'Customer';
+
+  /// The job in a picker's own words, for titles and the job switch.
+  String get jobName =>
+      this == PickMode.amazon ? 'Amazon stock' : 'Customer picks';
 }

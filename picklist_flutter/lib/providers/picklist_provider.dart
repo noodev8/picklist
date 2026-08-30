@@ -4,531 +4,188 @@ import '../api/get_picks_api.dart';
 import '../api/set_amazon_picked_api.dart';
 import '../api/set_picked_api.dart';
 import '../core/utils/auth_error_handler.dart';
+import '../models/pick_area.dart';
 import '../models/pick_item.dart';
-import '../models/pick_location.dart';
 import '../models/pick_mode.dart';
 
+/// Holds the current pick run.
+///
+/// The whole run is fetched in one call and everything after that - area tallies,
+/// bay grouping, per-area lists - is derived from that one list in memory. The
+/// previous version made a call per configured area on top of a call for the
+/// totals, which meant five round trips to build a screen and areas that could
+/// disagree with each other halfway through.
 class PicklistProvider with ChangeNotifier {
-
-  PicklistProvider() {
-    _initializeLocations();
-  }
-  bool _isAuthenticated = false;
-
-  // Which picking job is active. Customer and Amazon picks are separate jobs with
-  // separate lists and different pick mechanics, so every piece of cached state
-  // below is held per mode rather than shared.
-  PickMode _mode = PickMode.customer;
-
-  // Cache for pick items by location, per mode
-  final Map<PickMode, Map<String, List<PickItem>>> _pickItemsByMode = {
-    for (final PickMode mode in PickMode.values) mode: <String, List<PickItem>>{},
+  /// One list per job. A picker does customer picks or Amazon picks, never both
+  /// at once, and the two lists never overlap.
+  final Map<PickMode, List<PickItem>> _itemsByMode = <PickMode, List<PickItem>>{
+    for (final PickMode mode in PickMode.values) mode: <PickItem>[],
   };
 
-  // Location data per mode - will be populated from API data
-  final Map<PickMode, List<PickLocation>> _locationsByMode = {};
+  final Map<PickMode, bool> _loadedByMode = <PickMode, bool>{
+    for (final PickMode mode in PickMode.values) mode: false,
+  };
 
-  // Loading states
+  /// Items with a pick in flight, so a row can show it is working and a second
+  /// tap cannot race the first.
+  final Set<String> _inFlight = <String>{};
+
+  PickMode _mode = PickMode.customer;
   bool _isLoading = false;
   String? _errorMessage;
+  DateTime? _lastLoaded;
 
-  // Getters
-  bool get isAuthenticated => _isAuthenticated;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
   PickMode get mode => _mode;
   bool get isAmazonMode => _mode == PickMode.amazon;
-  List<PickLocation> get locations => _locations;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  DateTime? get lastLoaded => _lastLoaded;
+  bool get hasLoaded => _loadedByMode[_mode]!;
 
-  // Cached state for the active mode. Everything below reads through these so the
-  // rest of the provider does not have to care which mode is active.
-  Map<String, List<PickItem>> get _pickItems => _pickItemsByMode[_mode]!;
-  List<PickLocation> get _locations => _locationsByMode[_mode]!;
+  List<PickItem> get items => _itemsByMode[_mode]!;
 
-  /// Initialize locations with default values, for every mode
-  /// These will be updated with real counts from API
-  void _initializeLocations() {
-    for (final PickMode mode in PickMode.values) {
-      _locationsByMode[mode] = [
-        PickLocation(id: 'c3f', name: 'C3-Front', totalPicks: 0),
-        PickLocation(id: 'c3b', name: 'C3-Back', totalPicks: 0),
-        PickLocation(id: 'c3s', name: 'C3-Shop', totalPicks: 0),
-        PickLocation(id: 'c1', name: 'C1', totalPicks: 0),
-      ];
+  bool isInFlight(String id) => _inFlight.contains(id);
+
+  /// Areas in the current run, in bay order.
+  List<PickArea> get areas => PickArea.from(items);
+
+  int get total => items.length;
+  int get remaining => items.where((PickItem i) => !i.isPicked).length;
+  int get picked => total - remaining;
+
+  /// Items in one area, or the whole run when [area] is null. Ordered the way a
+  /// picker walks it: bay by bay, then by the pick order the server assigns.
+  List<PickItem> itemsForArea(String? area) {
+    final List<PickItem> result = area == null
+        ? List<PickItem>.of(items)
+        : items.where((PickItem i) => PickArea.of(i.location) == area).toList();
+
+    result.sort((PickItem a, PickItem b) {
+      final int byBay = a.location.compareTo(b.location);
+      if (byBay != 0) return byBay;
+      final int byOrder = a.pickOrder.compareTo(b.pickOrder);
+      if (byOrder != 0) return byOrder;
+      return a.productCode.compareTo(b.productCode);
+    });
+
+    return result;
+  }
+
+  int remainingIn(String? area) =>
+      itemsForArea(area).where((PickItem i) => !i.isPicked).length;
+
+  /// Loads the whole run for the active job.
+  ///
+  /// [silent] leaves the loading flag alone, for a pull-to-refresh that already
+  /// has its own spinner.
+  Future<void> load({bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
+
+    try {
+      final List<PickItem> picks = await GetPicksApi.getAllPicks(mode: _mode);
+      _itemsByMode[_mode] = picks;
+      _loadedByMode[_mode] = true;
+      _lastLoaded = DateTime.now();
+      _errorMessage = null;
+    } on AuthenticationException {
+      _errorMessage = 'Session expired. Log in again.';
+      rethrow;
+    } catch (e) {
+      _errorMessage = _readable(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  /// Switches between the customer and Amazon picking jobs and loads that job's picks.
-  /// Cached data for the mode being left is dropped so returning to it re-reads the
-  /// server rather than showing counts that may be stale by then.
+  /// Switches job and loads that job's run. The outgoing job's list is dropped so
+  /// coming back to it re-reads the server rather than showing a stale tally.
   Future<void> setMode(PickMode mode) async {
     if (_mode == mode) return;
 
-    _pickItemsByMode[_mode]!.clear();
+    _itemsByMode[_mode] = <PickItem>[];
+    _loadedByMode[_mode] = false;
     _mode = mode;
     _errorMessage = null;
     notifyListeners();
 
-    await loadAllPicksAfterLogin();
+    await load();
   }
 
-  // Authentication is now handled by AuthProvider
-  // This provider focuses on pick data management
-
-  Future<void> logout() async {
-    _isAuthenticated = false;
-    // Clear cached data for every mode on logout
-    for (final Map<String, List<PickItem>> cache in _pickItemsByMode.values) {
-      cache.clear();
-    }
-    _mode = PickMode.customer;
-    _initializeLocations();
-    notifyListeners();
-  }
-
-  /// Loads picks for a specific location from the API
+  /// Picks or unpicks [id].
   ///
-  /// [locationId] - The location ID to load picks for
-  /// [forceRefresh] - Whether to force refresh even if data is cached
-  /// [suppressNotifications] - Whether to suppress notifyListeners calls (for batch operations)
-  Future<void> loadPicksForLocation(String locationId, {bool forceRefresh = false, bool suppressNotifications = false}) async {
-    // Return cached data if available and not forcing refresh
-    if (!forceRefresh && _pickItems.containsKey(locationId)) {
-      return;
-    }
+  /// The row flips immediately and the call goes out behind it, so a pick lands
+  /// at walking pace even on warehouse wifi. A failure puts the row back the way
+  /// it was and reports why. Returns the state the item ended up in.
+  Future<bool> toggle(String id) async {
+    final int index = items.indexWhere((PickItem i) => i.id == id);
+    if (index == -1) return false;
 
-    // Only set loading state if not suppressing notifications
-    if (!suppressNotifications) {
-      _setLoading(true);
-      _clearError();
-    }
+    final PickItem item = items[index];
+    if (_inFlight.contains(id)) return item.isPicked;
 
-    try {
-      // Get picks from API for this location
-      final List<PickItem> picks = await GetPicksApi.getPicksForLocation(locationId, mode: _mode);
-
-      // Cache the picks
-      _pickItems[locationId] = picks;
-
-      // Update location total picks count (suppress notifications if requested)
-      if (suppressNotifications) {
-        _updateLocationPickCountSilent(locationId, picks.length);
-      } else {
-        _updateLocationPickCount(locationId, picks.length);
-      }
-
-    } on AuthenticationException {
-      // Re-throw authentication exceptions so they can be handled by the UI
-      if (!suppressNotifications) {
-        _setError('Authentication failed');
-      }
-      _pickItems[locationId] = [];
-      rethrow;
-    } catch (e) {
-      if (!suppressNotifications) {
-        _setError('Failed to load picks: ${e.toString()}');
-      }
-      // Ensure empty list if error occurs
-      _pickItems[locationId] = [];
-    } finally {
-      // Only set loading state if not suppressing notifications
-      if (!suppressNotifications) {
-        _setLoading(false);
-      }
-    }
-  }
-
-  /// Gets picks for a location (loads from API if not cached)
-  Future<List<PickItem>> getPicksForLocation(String locationId) async {
-    // Load from API if not cached
-    if (!_pickItems.containsKey(locationId)) {
-      await loadPicksForLocation(locationId);
-    }
-
-    final items = _pickItems[locationId] ?? [];
-    // Sort items by rack location for better picker workflow
-    items.sort((a, b) => a.location.compareTo(b.location));
-    return items;
-  }
-
-  /// Gets all picks across all locations
-  Future<List<PickItem>> getAllPicks() async {
-    final allItems = <PickItem>[];
-    for (final items in _pickItems.values) {
-      allItems.addAll(items);
-    }
-    // Sort items by rack location for better picker workflow
-    allItems.sort((a, b) => a.location.compareTo(b.location));
-    return allItems;
-  }
-
-  /// Sends a pick/unpick for [item] to the endpoint matching the active mode.
-  /// Customer picks flip qty and are freely reversible. Amazon picks move the item
-  /// into the staging area, so an unpick has to tell the server the location to put
-  /// it back at - the item keeps showing its original location for exactly this reason.
-  Future<void> _sendPickToggle(PickItem item) async {
-    if (_mode == PickMode.amazon) {
-      await SetAmazonPickedApi.togglePickedStatus(item.id, item.isPicked, item.location);
-    } else {
-      await SetPickedApi.togglePickedStatus(item.id, item.isPicked);
-    }
-  }
-
-  /// Toggles the picked status of an item using the API
-  Future<void> togglePickStatus(String locationId, String pickId) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      // Find the item in cache
-      final items = _pickItems[locationId];
-      if (items != null) {
-        final itemIndex = items.indexWhere((item) => item.id == pickId);
-        if (itemIndex != -1) {
-          final item = items[itemIndex];
-
-          // Call the API that matches the active picking job
-          await _sendPickToggle(item);
-
-          // Update local cache
-          items[itemIndex].isPicked = !items[itemIndex].isPicked;
-
-          notifyListeners();
-        }
-      }
-    } on AuthenticationException {
-      // Re-throw authentication exceptions so they can be handled by the UI
-      _setError('Authentication failed');
-      rethrow;
-    } catch (e) {
-      _setError('Failed to update pick status: ${e.toString()}');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Toggles the picked status of an item by searching across all locations
-  /// Used when showing all picks and we don't know which location the item belongs to
-  Future<void> togglePickStatusGlobally(String pickId) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      // Find the item across all locations
-      PickItem? foundItem;
-      String? foundLocationId;
-
-      for (final entry in _pickItems.entries) {
-        final locationId = entry.key;
-        final items = entry.value;
-        final itemIndex = items.indexWhere((item) => item.id == pickId);
-        if (itemIndex != -1) {
-          foundItem = items[itemIndex];
-          foundLocationId = locationId;
-          break;
-        }
-      }
-
-      if (foundItem != null && foundLocationId != null) {
-        // Call the API that matches the active picking job
-        await _sendPickToggle(foundItem);
-
-        // Update local cache
-        foundItem.isPicked = !foundItem.isPicked;
-
-        notifyListeners();
-      }
-    } on AuthenticationException {
-      // Re-throw authentication exceptions so they can be handled by the UI
-      _setError('Authentication failed');
-      rethrow;
-    } catch (e) {
-      _setError('Failed to update pick status: ${e.toString()}');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  int getTotalPicks() {
-    return locations.fold(0, (sum, location) => sum + location.totalPicks);
-  }
-
-  int getRemainingPicksForLocation(String locationId) {
-    final items = _pickItems[locationId];
-    if (items == null) return 0;
-    return items.where((item) => !item.isPicked).length;
-  }
-
-  int getTotalPicksForLocation(String locationId) {
-    final items = _pickItems[locationId];
-    return items?.length ?? 0;
-  }
-
-  int getCompletedPicks() {
-    int completed = 0;
-    for (final items in _pickItems.values) {
-      completed += items.where((item) => item.isPicked).length;
-    }
-    return completed;
-  }
-
-  int getTotalPicksCount() {
-    int total = 0;
-    for (final items in _pickItems.values) {
-      total += items.length;
-    }
-    return total;
-  }
-
-  double getCompletionRate() {
-    final total = getTotalPicksCount();
-    if (total == 0) return 0;
-    return getCompletedPicks() / total;
-  }
-
-  /// Returns locations sorted with completed locations at the bottom
-  List<PickLocation> getSortedLocations() {
-    // Only show locations that actually have picks; hide empty ones
-    // (e.g. removed/retired areas with no stock to pick)
-    final sortedLocations = locations
-        .where((loc) => getTotalPicksForLocation(loc.id) > 0)
-        .toList();
-
-    // Sort locations: incomplete first, completed last
-    sortedLocations.sort((a, b) {
-      final aRemaining = getRemainingPicksForLocation(a.id);
-      final bRemaining = getRemainingPicksForLocation(b.id);
-      final aCompleted = aRemaining == 0;
-      final bCompleted = bRemaining == 0;
-
-      // If completion status is different, sort by completion (incomplete first)
-      if (aCompleted != bCompleted) {
-        return aCompleted ? 1 : -1;
-      }
-
-      // If both have same completion status, maintain original order
-      return 0;
-    });
-
-    return sortedLocations;
-  }
-
-  List<PickItem> searchItems(String query) {
-    if (query.isEmpty) return [];
-
-    final allItems = <PickItem>[];
-    for (final items in _pickItems.values) {
-      allItems.addAll(items);
-    }
-
-    return allItems.where((item) {
-      return item.productCode.toLowerCase().contains(query.toLowerCase()) ||
-             item.title.toLowerCase().contains(query.toLowerCase()) ||
-             item.location.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-  }
-
-  List<PickItem> getFilteredItems({
-    String? locationId,
-    bool? isPicked,
-    String? searchQuery,
-  }) {
-    List<PickItem> items;
-
-    if (locationId != null) {
-      items = _pickItems[locationId] ?? [];
-    } else {
-      items = [];
-      for (final locationItems in _pickItems.values) {
-        items.addAll(locationItems);
-      }
-    }
-
-    if (isPicked != null) {
-      items = items.where((item) => item.isPicked == isPicked).toList();
-    }
-
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      items = items.where((item) {
-        return item.productCode.toLowerCase().contains(searchQuery.toLowerCase()) ||
-               item.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-               item.location.toLowerCase().contains(searchQuery.toLowerCase());
-      }).toList();
-    }
-
-    return items;
-  }
-
-  /// Get remaining picks count across all locations
-  int getRemainingPicksGlobally() {
-    int remaining = 0;
-    for (final items in _pickItems.values) {
-      remaining += items.where((item) => !item.isPicked).length;
-    }
-    return remaining;
-  }
-
-  /// Extract building name from rack location string
-  /// Examples: 'C3-Front-Rack-01' -> 'C3-Front', 'C1-Rack-01' -> 'C1'
-  String getBuildingNameFromLocation(String rackLocation) {
-    // Handle different location formats
-    if (rackLocation.startsWith('C3-Front')) return 'C3-Front';
-    if (rackLocation.startsWith('C3-Back')) return 'C3-Back';
-    if (rackLocation.startsWith('C3-Crocs')) return 'C3-Crocs';
-    if (rackLocation.startsWith('C3-Shop')) return 'C3-Shop';
-    if (rackLocation.startsWith('C1')) return 'C1';
-
-    // Fallback: try to extract building from location string
-    final parts = rackLocation.split('-');
-    if (parts.length >= 2) {
-      return '${parts[0]}-${parts[1]}';
-    } else if (parts.isNotEmpty) {
-      return parts[0];
-    }
-
-    return 'Unknown';
-  }
-
-  /// Get location ID from building name
-  /// Used for color coding and identification
-  String getLocationIdFromBuildingName(String buildingName) {
-    switch (buildingName) {
-      case 'C3-Front': return 'c3f';
-      case 'C3-Back': return 'c3b';
-      case 'C3-Crocs': return 'c3c';
-      case 'C3-Shop': return 'c3s';
-      case 'C1': return 'c1';
-      default: return 'unknown';
-    }
-  }
-
-  /// Helper method to set loading state
-  void _setLoading(bool loading) {
-    _isLoading = loading;
+    final bool wasPicked = item.isPicked;
+    item.isPicked = !wasPicked;
+    _inFlight.add(id);
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      if (_mode == PickMode.amazon) {
+        await SetAmazonPickedApi.togglePickedStatus(
+          item.id,
+          wasPicked,
+          item.location,
+        );
+      } else {
+        await SetPickedApi.togglePickedStatus(item.id, wasPicked);
+      }
+      return item.isPicked;
+    } on AuthenticationException {
+      item.isPicked = wasPicked;
+      _errorMessage = 'Session expired. Log in again.';
+      rethrow;
+    } catch (e) {
+      item.isPicked = wasPicked;
+      _errorMessage = _readable(e);
+      return item.isPicked;
+    } finally {
+      _inFlight.remove(id);
+      notifyListeners();
+    }
   }
 
-  /// Helper method to clear error message
-  void _clearError() {
+  void clearError() {
+    if (_errorMessage == null) return;
     _errorMessage = null;
     notifyListeners();
   }
 
-  /// Helper method to set error message
-  void _setError(String error) {
-    _errorMessage = error;
+  /// Drops everything on logout.
+  void reset() {
+    for (final PickMode mode in PickMode.values) {
+      _itemsByMode[mode] = <PickItem>[];
+      _loadedByMode[mode] = false;
+    }
+    _inFlight.clear();
+    _mode = PickMode.customer;
+    _isLoading = false;
+    _errorMessage = null;
+    _lastLoaded = null;
     notifyListeners();
   }
 
-  /// Helper method to update location pick count
-  void _updateLocationPickCount(String locationId, int count) {
-    final locationIndex = _locations.indexWhere((loc) => loc.id == locationId);
-    if (locationIndex != -1) {
-      _locations[locationIndex] = PickLocation(
-        id: _locations[locationIndex].id,
-        name: _locations[locationIndex].name,
-        totalPicks: count,
-      );
-      notifyListeners();
+  /// Strips the `Exception:` prefixes the API layer stacks up, so what reaches a
+  /// picker reads like a sentence.
+  String _readable(Object error) {
+    String message = error.toString();
+    while (message.startsWith('Exception: ')) {
+      message = message.substring('Exception: '.length);
     }
-  }
-
-  /// Helper method to update location pick count without notifying listeners
-  /// Used for batch operations to prevent multiple UI rebuilds
-  void _updateLocationPickCountSilent(String locationId, int count) {
-    final locationIndex = _locations.indexWhere((loc) => loc.id == locationId);
-    if (locationIndex != -1) {
-      _locations[locationIndex] = PickLocation(
-        id: _locations[locationIndex].id,
-        name: _locations[locationIndex].name,
-        totalPicks: count,
-      );
-      // Note: No notifyListeners() call here - caller is responsible for notification
-    }
-  }
-
-  /// Refreshes all location pick counts from API
-  Future<void> refreshLocationCounts() async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation(mode: _mode);
-
-      for (int i = 0; i < _locations.length; i++) {
-        final locationId = _locations[i].id;
-        final count = counts[locationId] ?? 0;
-        _locations[i] = PickLocation(
-          id: locationId,
-          name: _locations[i].name,
-          totalPicks: count,
-        );
-      }
-
-      notifyListeners();
-    } on AuthenticationException {
-      // Re-throw authentication exceptions so they can be handled by the UI
-      _setError('Authentication failed');
-      rethrow;
-    } catch (e) {
-      _setError('Failed to refresh location counts: ${e.toString()}');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Loads all picks data immediately after login
-  /// This populates the location counts so users can see pick quantities right away
-  /// without having to navigate to each location first
-  Future<void> loadAllPicksAfterLogin() async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      // Get pick counts for all locations to update the dashboard
-      final Map<String, int> counts = await GetPicksApi.getPickCountsByLocation(mode: _mode);
-
-      // Update location pick counts
-      for (int i = 0; i < _locations.length; i++) {
-        final locationId = _locations[i].id;
-        final count = counts[locationId] ?? 0;
-        _locations[i] = PickLocation(
-          id: locationId,
-          name: _locations[i].name,
-          totalPicks: count,
-        );
-      }
-
-      // Force refresh picks for all locations to ensure fresh data
-      // This is critical for dashboard refresh to show updated completed/pending stats
-      // Use suppressNotifications to prevent multiple UI rebuilds during batch loading
-      for (final location in _locations) {
-        if (location.totalPicks > 0) {
-          try {
-            // IMPORTANT: Use forceRefresh: true to bypass cache and get fresh data
-            // Use suppressNotifications: true to prevent setState() during build exceptions
-            await loadPicksForLocation(
-              location.id,
-              forceRefresh: true,
-              suppressNotifications: true,
-            );
-          } catch (e) {
-            // Continue with other locations even if one fails
-            // This prevents one failed location from blocking the entire refresh
-          }
-        }
-      }
-
-      // Single notifyListeners() call at the end to trigger UI rebuild once
-      notifyListeners();
-    } on AuthenticationException {
-      // Re-throw authentication exceptions so they can be handled by the UI
-      _setError('Authentication failed');
-      rethrow;
-    } catch (e) {
-      _setError('Failed to load picks data: ${e.toString()}');
-    } finally {
-      _setLoading(false);
-    }
+    return message;
   }
 }
